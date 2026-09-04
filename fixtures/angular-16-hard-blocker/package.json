@@ -1,0 +1,15 @@
+{
+  "name": "acme-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@angular/core": "16.2.12",
+    "@angular/common": "16.2.12",
+    "@ngrx/store": "16.3.0",
+    "primeng": "16.9.1",
+    "ngx-old-calendar": "7.2.0",
+    "date-fns": "3.6.0",
+    "lodash-es": "4.17.21",
+    "uuid": "9.0.1"
+  }
+}

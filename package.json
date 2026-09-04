@@ -14,10 +14,12 @@
   },
   "scripts": {
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "test": "vitest",
     "test:run": "vitest run",
     "build": "tsup",
-    "check": "npm run lint && npm run test:run && npm run build"
+    "check": "npm run lint && npm run typecheck && npm run test:run && npm run build"
   },
   "keywords": [
     "angular",

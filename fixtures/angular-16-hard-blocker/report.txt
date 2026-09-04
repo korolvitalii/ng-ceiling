@@ -1,0 +1,27 @@
+Angular Upgrade Ceiling
+─────────────────────────────────
+
+Current Angular          16
+Declared ceiling         18  (upper bound)
+Latest Angular           20
+
+First blocked version    Angular 19
+
+Blockers
+─────────────────────────────────
+
+ngx-old-calendar
+
+Installed                7.2.0
+Declared support         Angular <=18
+Compatible Angular 19    NONE
+
+If replaced:
+Ceiling                   18 → 20
+
+Unverified
+─────────────────────────────────
+
+3 dependencies declare no Angular constraint.
+They are excluded from the ceiling above.
+Run with --unknown to list them.
