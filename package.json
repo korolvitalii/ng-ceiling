@@ -1,0 +1,47 @@
+{
+  "name": "ng-ceiling",
+  "version": "0.0.1",
+  "description": "Reports the highest Angular major version your project can reach, and what's blocking it.",
+  "type": "module",
+  "bin": {
+    "ng-ceiling": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "build": "tsup",
+    "check": "npm run lint && npm run test:run && npm run build"
+  },
+  "keywords": [
+    "angular",
+    "upgrade",
+    "dependencies",
+    "peer-dependencies",
+    "semver",
+    "cli"
+  ],
+  "author": "Vitalii",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^15.0.0",
+    "semver": "^7.8.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.4.1",
+    "@types/semver": "^7.8.0",
+    "eslint": "^10.9.1",
+    "prettier": "^3.9.6",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.69.0",
+    "vitest": "^5.0.0"
+  }
+}
