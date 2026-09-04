@@ -37,8 +37,8 @@ export function angularPeerRange(version: RegistryPackageVersion): string | unde
   return undefined;
 }
 
-/** Every published version that declares an Angular peer, ascending. */
-export function toSupportedVersions(pkg: RegistryPackage): SupportedVersion[] {
+/** Every published version that declares a measurable Angular peer, ascending. */
+function declaredVersions(pkg: RegistryPackage): SupportedVersion[] {
   return pkg.versions
     .filter((entry) => semver.valid(entry.version) !== null)
     .flatMap((entry) => {
@@ -46,6 +46,56 @@ export function toSupportedVersions(pkg: RegistryPackage): SupportedVersion[] {
       return angularRange === undefined ? [] : [{ version: entry.version, angularRange }];
     })
     .sort((a, b) => semver.compare(a.version, b.version));
+}
+
+/** The version a project would upgrade to: the latest dist-tag, else the highest stable. */
+export function newestVersion(pkg: RegistryPackage): string | undefined {
+  const tagged = pkg.distTags['latest'];
+  if (tagged !== undefined && semver.valid(tagged) !== null) return tagged;
+
+  return pkg.versions
+    .map((entry) => entry.version)
+    .filter((version) => semver.valid(version) !== null && semver.prerelease(version) === null)
+    .sort(semver.compare)
+    .at(-1);
+}
+
+/**
+ * Angular ships its own packages in lockstep with the framework major, so
+ * @angular/thing@N supports Angular N by construction. Used only as a fallback:
+ * @angular/core declares its @angular/compiler peer as optional and
+ * @angular/compiler declares no peers at all, so neither is measurable from
+ * peer metadata alone. Packages in the scope that do declare a real peer —
+ * @angular/fire, which is not on the lockstep train — are measured from it.
+ */
+function lockstepVersions(pkg: RegistryPackage): SupportedVersion[] {
+  return pkg.versions
+    .filter((entry) => semver.valid(entry.version) !== null)
+    .map((entry) => {
+      const major = semver.major(entry.version);
+      return { version: entry.version, angularRange: `>=${major}.0.0 <${major + 1}.0.0` };
+    })
+    .sort((a, b) => semver.compare(a.version, b.version));
+}
+
+/**
+ * The versions this package's Angular compatibility can be measured from, or an
+ * empty list when it cannot be measured at all.
+ *
+ * Measurability is decided by the NEWEST published version, not by any version.
+ * Packages such as @angular-eslint/eslint-plugin and ng2-ckeditor declared an
+ * Angular peer years ago and no longer do; judging them on those stale versions
+ * reports "no version supports Angular 16" for packages that simply stopped
+ * saying. Unmeasured is not incompatible, so they become UNKNOWN instead and
+ * are excluded from the ceiling.
+ */
+export function toSupportedVersions(pkg: RegistryPackage): SupportedVersion[] {
+  const declared = declaredVersions(pkg);
+  const newest = newestVersion(pkg);
+
+  if (newest !== undefined && declared.some((entry) => entry.version === newest)) return declared;
+  if (pkg.name.startsWith(ANGULAR_SCOPE)) return lockstepVersions(pkg);
+  return [];
 }
 
 /**

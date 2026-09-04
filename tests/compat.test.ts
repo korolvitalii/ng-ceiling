@@ -5,8 +5,9 @@ import {
   findCompatibleVersion,
   rangeCoversMajor,
   solveCeiling,
+  toSupportedVersions,
 } from '../src/compat';
-import type { KnownDependency } from '../src/types';
+import type { KnownDependency, RegistryPackage } from '../src/types';
 
 const dep = (name: string, supported: [string, string][]): KnownDependency => ({
   name,
@@ -151,5 +152,82 @@ describe('declaredSupport', () => {
       ['7.2.0', '>=17.0.0 <19.0.0'],
     ]);
     expect(declaredSupport(stuck, 20)).toBe('Angular <=18');
+  });
+});
+
+describe('toSupportedVersions', () => {
+  const pkg = (
+    name: string,
+    versions: RegistryPackage['versions'],
+    latest: string,
+  ): RegistryPackage => ({ name, distTags: { latest }, versions });
+
+  it('measures a package whose newest version declares an Angular peer', () => {
+    const measured = toSupportedVersions(
+      pkg(
+        'primeng',
+        [
+          { version: '16.0.0', peerDependencies: { '@angular/core': '^16.0.0' } },
+          { version: '20.0.0', peerDependencies: { '@angular/core': '^20.0.0' } },
+        ],
+        '20.0.0',
+      ),
+    );
+    expect(measured.map((entry) => entry.angularRange)).toEqual(['^16.0.0', '^20.0.0']);
+  });
+
+  it('treats a package that stopped declaring an Angular peer as unmeasured', () => {
+    // @angular-eslint/eslint-plugin and ng2-ckeditor both do this. Judging them
+    // on their stale versions would report a hard blocker for a package that
+    // merely stopped saying which Angular it supports.
+    const measured = toSupportedVersions(
+      pkg(
+        'ng2-ckeditor',
+        [
+          { version: '1.0.0', peerDependencies: { '@angular/core': '^13.0.0' } },
+          { version: '1.2.9', peerDependencies: { '@types/ckeditor': '^4.9.10' } },
+        ],
+        '1.2.9',
+      ),
+    );
+    expect(measured).toEqual([]);
+  });
+
+  it('falls back to lockstep versioning for Angular packages with only optional peers', () => {
+    // @angular/core declares @angular/compiler as an optional peer, so nothing
+    // measurable remains; its own major is the Angular major.
+    const measured = toSupportedVersions(
+      pkg(
+        '@angular/core',
+        [
+          {
+            version: '19.2.14',
+            peerDependencies: { '@angular/compiler': '19.2.14' },
+            peerDependenciesMeta: { '@angular/compiler': { optional: true } },
+          },
+        ],
+        '19.2.14',
+      ),
+    );
+    expect(measured).toEqual([{ version: '19.2.14', angularRange: '>=19.0.0 <20.0.0' }]);
+  });
+
+  it('falls back to lockstep for an Angular package with no peers at all', () => {
+    const measured = toSupportedVersions(
+      pkg('@angular/compiler', [{ version: '22.1.3' }], '22.1.3'),
+    );
+    expect(measured).toEqual([{ version: '22.1.3', angularRange: '>=22.0.0 <23.0.0' }]);
+  });
+
+  it('prefers a declared peer over lockstep inside the @angular scope', () => {
+    // @angular/fire lives in the scope but is not on the lockstep train.
+    const measured = toSupportedVersions(
+      pkg(
+        '@angular/fire',
+        [{ version: '19.0.0', peerDependencies: { '@angular/core': '^20.0.0' } }],
+        '19.0.0',
+      ),
+    );
+    expect(measured).toEqual([{ version: '19.0.0', angularRange: '^20.0.0' }]);
   });
 });
