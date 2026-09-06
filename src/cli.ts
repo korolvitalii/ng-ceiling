@@ -1,10 +1,17 @@
 import { Command } from 'commander';
 import { analyze } from './compat';
-import { readPackageJson, toDependencies } from './project';
+import { readDeclaredToolchain, readPackageJson, toDependencies } from './project';
 import { fetchPackages, RegistryUnavailableError } from './registry';
 import { renderReport } from './report';
 
 const ANGULAR_CORE = '@angular/core';
+
+/**
+ * Angular's own packages, always fetched regardless of what the project
+ * declares: @angular/core for the latest dist-tag and its rxjs/zone.js peers,
+ * @angular/compiler-cli for its typescript peer, @angular/cli for engines.node.
+ */
+const ANGULAR_TOOLCHAIN_PACKAGES = [ANGULAR_CORE, '@angular/compiler-cli', '@angular/cli'];
 
 interface Options {
   cwd: string;
@@ -12,15 +19,20 @@ interface Options {
 }
 
 async function run(options: Options): Promise<void> {
-  const dependencies = toDependencies(readPackageJson(options.cwd));
+  const pkg = readPackageJson(options.cwd);
+  const dependencies = toDependencies(pkg);
 
   if (!dependencies.some((dep) => dep.name === ANGULAR_CORE)) {
     throw new Error(`not an Angular project: no ${ANGULAR_CORE} dependency in ${options.cwd}`);
   }
 
-  const packages = await fetchPackages([...dependencies.map((dep) => dep.name), ANGULAR_CORE]);
+  const toolchain = readDeclaredToolchain(options.cwd, pkg);
+  const packages = await fetchPackages([
+    ...dependencies.map((dep) => dep.name),
+    ...ANGULAR_TOOLCHAIN_PACKAGES,
+  ]);
   process.stdout.write(
-    renderReport(analyze(dependencies, packages), { listUnknown: options.unknown }),
+    renderReport(analyze(dependencies, packages, toolchain), { listUnknown: options.unknown }),
   );
 }
 

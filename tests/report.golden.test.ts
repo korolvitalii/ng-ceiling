@@ -21,11 +21,11 @@ const packages = JSON.parse(read('packuments.json')) as Record<string, RegistryP
  * column alignment and box-drawing characters are part of the spec.
  */
 it('renders the specified report for the hard-blocker fixture', () => {
-  expect(renderReport(analyze(dependencies, packages))).toBe(read('report.txt'));
+  expect(renderReport(analyze(dependencies, packages, {}))).toBe(read('report.txt'));
 });
 
 it('lists the unverified dependencies behind --unknown', () => {
-  const output = renderReport(analyze(dependencies, packages), { listUnknown: true });
+  const output = renderReport(analyze(dependencies, packages, {}), { listUnknown: true });
   expect(output).toContain('  date-fns');
   expect(output).toContain('  lodash-es');
   expect(output).toContain('  uuid');
@@ -33,7 +33,7 @@ it('lists the unverified dependencies behind --unknown', () => {
 });
 
 it('computes the numbers the report is built from', () => {
-  const analysis = analyze(dependencies, packages);
+  const analysis = analyze(dependencies, packages, {});
   expect(analysis).toMatchObject({
     currentAngularMajor: 16,
     declaredCeiling: 18,

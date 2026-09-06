@@ -1,0 +1,68 @@
+{
+  "@angular/core": {
+    "name": "@angular/core",
+    "distTags": { "latest": "20.3.0" },
+    "versions": [
+      {
+        "version": "17.3.12",
+        "peerDependencies": { "@angular/compiler": "17.3.12", "rxjs": "^6.5.3 || ^7.4.0", "zone.js": "~0.14.0" },
+        "peerDependenciesMeta": { "@angular/compiler": { "optional": true } }
+      },
+      {
+        "version": "18.2.13",
+        "peerDependencies": { "@angular/compiler": "18.2.13", "rxjs": "^6.5.3 || ^7.4.0", "zone.js": "~0.14.10" },
+        "peerDependenciesMeta": { "@angular/compiler": { "optional": true } }
+      },
+      {
+        "version": "19.2.14",
+        "peerDependencies": { "@angular/compiler": "19.2.14", "rxjs": "^6.5.3 || ^7.4.0", "zone.js": "~0.15.0" },
+        "peerDependenciesMeta": { "@angular/compiler": { "optional": true }, "zone.js": { "optional": true } }
+      },
+      {
+        "version": "20.3.0",
+        "peerDependencies": { "@angular/compiler": "20.3.0", "rxjs": "^6.5.3 || ^7.4.0", "zone.js": "~0.15.0" },
+        "peerDependenciesMeta": { "@angular/compiler": { "optional": true }, "zone.js": { "optional": true } }
+      }
+    ]
+  },
+  "@angular/common": {
+    "name": "@angular/common",
+    "distTags": { "latest": "20.3.0" },
+    "versions": [
+      { "version": "17.3.12" },
+      { "version": "18.2.13" },
+      { "version": "19.2.14" },
+      { "version": "20.3.0" }
+    ]
+  },
+  "@angular/router": {
+    "name": "@angular/router",
+    "distTags": { "latest": "20.3.0" },
+    "versions": [
+      { "version": "17.3.12" },
+      { "version": "18.2.13" },
+      { "version": "19.2.14" },
+      { "version": "20.3.0" }
+    ]
+  },
+  "@angular/compiler-cli": {
+    "name": "@angular/compiler-cli",
+    "distTags": { "latest": "20.3.0" },
+    "versions": [
+      { "version": "17.3.12", "peerDependencies": { "typescript": ">=5.2 <5.5" } },
+      { "version": "18.2.13", "peerDependencies": { "typescript": ">=5.4 <5.6" } },
+      { "version": "19.2.14", "peerDependencies": { "typescript": ">=5.5 <5.9" } },
+      { "version": "20.3.0", "peerDependencies": { "typescript": ">=5.8 <6.0" } }
+    ]
+  },
+  "@angular/cli": {
+    "name": "@angular/cli",
+    "distTags": { "latest": "20.3.0" },
+    "versions": [
+      { "version": "17.3.12", "engines": { "node": "^18.13.0 || >=20.9.0" } },
+      { "version": "18.2.13", "engines": { "node": "^18.19.1 || ^20.11.1 || >=22.0.0" } },
+      { "version": "19.2.14", "engines": { "node": "^18.19.1 || ^20.11.1 || >=22.0.0" } },
+      { "version": "20.3.0", "engines": { "node": "^20.19.0 || ^22.12.0 || >=24.0.0" } }
+    ]
+  }
+}

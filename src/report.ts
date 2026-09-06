@@ -1,4 +1,4 @@
-import type { CeilingAnalysis } from './types';
+import type { CeilingAnalysis, ToolchainAxis } from './types';
 
 const RULE = '─'.repeat(33);
 const COLUMN = 25;
@@ -19,6 +19,20 @@ export interface ReportOptions {
   /** Print the UNKNOWN dependencies by name instead of only their count. */
   listUnknown?: boolean;
 }
+
+const AXIS_LABEL: Record<ToolchainAxis, string> = {
+  typescript: 'TypeScript',
+  rxjs: 'RxJS',
+  'zone.js': 'zone.js',
+  node: 'Node.js',
+};
+
+const NODE_SOURCE_LABEL: Record<string, string> = {
+  nvmrc: '.nvmrc',
+  'node-version': '.node-version',
+  engines: 'package.json engines.node',
+  process: 'process.version — no .nvmrc, .node-version or engines.node found',
+};
 
 /** Renders the console report. Pure: same analysis in, same bytes out. */
 export function renderReport(analysis: CeilingAnalysis, options: ReportOptions = {}): string {
@@ -43,6 +57,32 @@ export function renderReport(analysis: CeilingAnalysis, options: ReportOptions =
 
       if (blocker.ceilingWithoutBlocker !== undefined) {
         lines.push('', 'If replaced:');
+        lines.push(
+          row(
+            'Ceiling',
+            `${analysis.declaredCeiling} → ${blocker.ceilingWithoutBlocker}`,
+            UNLOCK_COLUMN,
+          ),
+        );
+      }
+    }
+  }
+
+  if (analysis.toolchainBlockers.length > 0) {
+    lines.push('', 'Toolchain', RULE);
+
+    for (const blocker of analysis.toolchainBlockers) {
+      const installed =
+        blocker.axis === 'node' && blocker.nodeSource !== undefined
+          ? `${blocker.installed}  (${NODE_SOURCE_LABEL[blocker.nodeSource]})`
+          : blocker.installed;
+
+      lines.push('', AXIS_LABEL[blocker.axis], '');
+      lines.push(row('Installed', installed));
+      lines.push(row(`Angular ${blocker.targetAngularMajor} requires`, blocker.requiredRange));
+
+      if (blocker.ceilingWithoutBlocker !== undefined) {
+        lines.push('', 'If upgraded:');
         lines.push(
           row(
             'Ceiling',

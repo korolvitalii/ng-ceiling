@@ -1,12 +1,15 @@
 import semver from 'semver';
+import { solveToolchainCeiling, toolchainFailuresAt } from './toolchain-compat';
 import type {
   CeilingAnalysis,
+  DeclaredToolchain,
   DependencyBlocker,
   KnownDependency,
   ProjectDependency,
   RegistryPackage,
   RegistryPackageVersion,
   SupportedVersion,
+  ToolchainBlocker,
 } from './types';
 
 const ANGULAR_SCOPE = '@angular/';
@@ -139,6 +142,11 @@ export function declaredSupport(dep: KnownDependency, upTo: number): string {
   return lowest === 1 ? `Angular <=${highest}` : `Angular ${lowest}-${highest}`;
 }
 
+/** Every known dependency with no compatible published version at this major. */
+export function dependenciesBlockedAt(deps: KnownDependency[], major: number): KnownDependency[] {
+  return deps.filter((dep) => findCompatibleVersion(dep, major) === undefined);
+}
+
 export interface CeilingResult {
   ceiling: number;
   firstBlocked?: number;
@@ -155,10 +163,17 @@ export function solveCeiling(
   latest: number,
 ): CeilingResult {
   for (let major = current + 1; major <= latest; major++) {
-    const blocked = deps.filter((dep) => findCompatibleVersion(dep, major) === undefined);
+    const blocked = dependenciesBlockedAt(deps, major);
     if (blocked.length > 0) return { ceiling: major - 1, firstBlocked: major, blocked };
   }
   return { ceiling: Math.max(current, latest), blocked: [] };
+}
+
+/** The lower of two possibly-absent blocked majors — either side may not fire. */
+function combinedFirstBlocked(a: number | undefined, b: number | undefined): number | undefined {
+  if (a === undefined) return b;
+  if (b === undefined) return a;
+  return Math.min(a, b);
 }
 
 export function currentAngularMajor(dependencies: ProjectDependency[]): number {
@@ -193,12 +208,19 @@ function lowestVersion(range: string): string | undefined {
 /**
  * The whole calculation, as one pure function over already-fetched data.
  *
- * Slice 1 measures third-party Angular peers only. Angular's own constraints on
- * TypeScript, RxJS, zone.js and Node point the other way and arrive with D1.
+ * Third-party dependencies and Angular's own toolchain (TypeScript, RxJS,
+ * zone.js, Node — see toolchain-compat.ts) are two independent walks,
+ * combined by taking the minimum blocked major. Blockers are always
+ * recomputed at that exact combined major, never read off whichever walk
+ * found it first: if toolchain blocks at 17 and a dependency would only have
+ * blocked at 19, that dependency must not be reported as a blocker at all.
+ * The same recompute makes unlock analysis correct too — removing a
+ * dependency blocker can't report an unlock the toolchain would still cap.
  */
 export function analyze(
   dependencies: ProjectDependency[],
   packages: Record<string, RegistryPackage>,
+  toolchain: DeclaredToolchain,
 ): CeilingAnalysis {
   const current = currentAngularMajor(dependencies);
   const latest = latestAngularMajor(packages);
@@ -220,33 +242,58 @@ export function analyze(
     });
   }
 
-  const result = solveCeiling(known, current, latest);
-  const target = result.firstBlocked;
+  const depResult = solveCeiling(known, current, latest);
+  const toolResult = solveToolchainCeiling(toolchain, packages, current, latest);
 
-  const blockers: DependencyBlocker[] =
-    target === undefined
-      ? []
-      : result.blocked.map((dep) => {
-          const without = solveCeiling(
-            known.filter((other) => other.name !== dep.name),
-            current,
-            latest,
-          ).ceiling;
-          return {
-            packageName: dep.name,
-            installedVersion: dep.installedVersion,
-            targetAngularMajor: target,
-            declaredSupport: declaredSupport(dep, latest),
-            ceilingWithoutBlocker: without > result.ceiling ? without : undefined,
-          };
-        });
+  const firstBlocked = combinedFirstBlocked(depResult.firstBlocked, toolResult.firstBlocked);
+  const declaredCeiling = firstBlocked !== undefined ? firstBlocked - 1 : Math.max(current, latest);
+
+  const blockedDeps = firstBlocked === undefined ? [] : dependenciesBlockedAt(known, firstBlocked);
+  const blockedToolchain =
+    firstBlocked === undefined ? [] : toolchainFailuresAt(toolchain, packages, firstBlocked);
+
+  const blockers: DependencyBlocker[] = blockedDeps.map((dep) => {
+    const without = combinedFirstBlocked(
+      solveCeiling(
+        known.filter((other) => other.name !== dep.name),
+        current,
+        latest,
+      ).firstBlocked,
+      toolResult.firstBlocked,
+    );
+    const withoutCeiling = without !== undefined ? without - 1 : Math.max(current, latest);
+    return {
+      packageName: dep.name,
+      installedVersion: dep.installedVersion,
+      targetAngularMajor: firstBlocked!,
+      declaredSupport: declaredSupport(dep, latest),
+      ceilingWithoutBlocker: withoutCeiling > declaredCeiling ? withoutCeiling : undefined,
+    };
+  });
+
+  const toolchainBlockers: ToolchainBlocker[] = blockedToolchain.map((failure) => {
+    const without = combinedFirstBlocked(
+      depResult.firstBlocked,
+      solveToolchainCeiling(toolchain, packages, current, latest, failure.axis).firstBlocked,
+    );
+    const withoutCeiling = without !== undefined ? without - 1 : Math.max(current, latest);
+    return {
+      axis: failure.axis,
+      installed: failure.installed,
+      requiredRange: failure.requiredRange,
+      targetAngularMajor: firstBlocked!,
+      nodeSource: failure.axis === 'node' ? toolchain.node?.source : undefined,
+      ceilingWithoutBlocker: withoutCeiling > declaredCeiling ? withoutCeiling : undefined,
+    };
+  });
 
   return {
     currentAngularMajor: current,
-    declaredCeiling: result.ceiling,
+    declaredCeiling,
     latestAngularMajor: latest,
-    firstBlockedMajor: target,
+    firstBlockedMajor: firstBlocked,
     blockers,
+    toolchainBlockers,
     unknownDependencies: [...unknown].sort(),
   };
 }

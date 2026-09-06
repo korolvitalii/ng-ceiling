@@ -1,0 +1,15 @@
+{
+  "name": "acme-toolchain-check",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@angular/core": "17.3.12",
+    "@angular/common": "17.3.12",
+    "@angular/router": "17.3.12"
+  },
+  "devDependencies": {
+    "typescript": "~5.4.0",
+    "rxjs": "~7.8.0",
+    "zone.js": ">=0.14.0 <0.16.0"
+  }
+}

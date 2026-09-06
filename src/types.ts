@@ -47,6 +47,46 @@ export interface DependencyBlocker {
   ceilingWithoutBlocker?: number;
 }
 
+/**
+ * Angular's peers point at its own toolchain, not at third-party packages:
+ * TypeScript via @angular/compiler-cli, RxJS and zone.js via @angular/core,
+ * Node via @angular/cli's engines.node. See
+ * docs/agent-knowledge/toolchain-direction.md.
+ */
+export type ToolchainAxis = 'typescript' | 'rxjs' | 'zone.js' | 'node';
+
+/**
+ * .nvmrc, .node-version and the process.version fallback are all a single
+ * pinned version, compared with `satisfies`. Only package.json's
+ * engines.node is a real range, compared with `intersects` like every other
+ * axis. `kind` is what tells the comparison which to use.
+ */
+export interface NodeVersionSource {
+  value: string;
+  kind: 'version' | 'range';
+  source: 'nvmrc' | 'node-version' | 'engines' | 'process';
+}
+
+/** What the project declares for each axis Angular's own peers constrain. */
+export interface DeclaredToolchain {
+  typescript?: string;
+  rxjs?: string;
+  zoneJs?: string;
+  node?: NodeVersionSource;
+}
+
+export interface ToolchainBlocker {
+  axis: ToolchainAxis;
+  /** The declared range, or the Node value, human-readable. */
+  installed: string;
+  /** Angular's requirement for this axis at targetAngularMajor. */
+  requiredRange: string;
+  targetAngularMajor: number;
+  /** Present only when axis === 'node' — discloses a process.version fallback. */
+  nodeSource?: NodeVersionSource['source'];
+  ceilingWithoutBlocker?: number;
+}
+
 export interface CeilingAnalysis {
   currentAngularMajor: number;
   /** Optimistic upper bound — see the Limitations section of the README. */
@@ -54,6 +94,7 @@ export interface CeilingAnalysis {
   latestAngularMajor: number;
   firstBlockedMajor?: number;
   blockers: DependencyBlocker[];
+  toolchainBlockers: ToolchainBlocker[];
   /** Excluded from the ceiling, never counted against it. */
   unknownDependencies: string[];
 }
