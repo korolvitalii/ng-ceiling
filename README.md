@@ -57,22 +57,34 @@ Blockers
 ng2-smart-table
 
 Installed                1.6.0
-Declared support         Angular <=10
+Declared support         Angular 2-10
 Compatible Angular 16    NONE
 
 codelyzer
 
 Installed                6.0.2
-Declared support         Angular <=12
+Declared support         Angular 2-12
 Compatible Angular 16    NONE
+
+Toolchain
+─────────────────────────────────
+
+zone.js
+
+Installed                ~0.11.4
+Angular 16 requires      ~0.13.0
 
 Unverified
 ─────────────────────────────────
 
-59 dependencies declare no Angular constraint.
+56 dependencies declare no Angular constraint.
 They are excluded from the ceiling above.
 Run with --unknown to list them.
 ```
+
+The `Toolchain` section is Angular's own peers, not a third-party package: `zone.js`
+here was never going to show up in a dependency scan, since `zone.js` doesn't declare
+a peer *on* Angular — Angular declares a peer on it, the other way around.
 
 ## How it works
 
@@ -84,8 +96,16 @@ Run with --unknown to list them.
    `@angular/core` declares its `@angular/compiler` peer as optional and `@angular/compiler`
    declares no peers at all.
 4. For each Angular major above the current one, ask whether every kept dependency has a
-   published version whose Angular peer range overlaps that major.
-5. Stop at the first major where one does not.
+   published version whose Angular peer range overlaps that major — and, independently,
+   whether the project's declared TypeScript, RxJS, zone.js and Node still overlap what
+   *that* Angular major requires of them. Angular declares peers on its own toolchain the
+   other way around from how third-party packages declare a peer on Angular, so this is a
+   separate check reading `@angular/compiler-cli` (TypeScript), `@angular/core` (RxJS,
+   zone.js) and `@angular/cli` (`engines.node`). Node itself is read in precedence order:
+   `.nvmrc`, then `.node-version`, then `package.json` `engines.node`, then the running
+   Node version as a last resort — flagged as such, since that describes the machine the
+   tool ran on, not the project.
+5. Stop at the first major where either check fails.
 
 The latest Angular major is read from the `@angular/core` dist-tags at runtime, never
 hardcoded.
@@ -114,29 +134,34 @@ direction, and it is better to know exactly how:
 - **Unmeasurable dependencies are excluded from the number,** not counted against it. They
   are reported separately under `Unverified`. Missing peer metadata is treated as unmeasured,
   never as compatible.
-- **Angular's own toolchain constraints are not checked yet.** TypeScript, RxJS, zone.js and
-  Node are frequently the real blocker, and the constraint points the other way — Angular
-  declares peers on them, not the reverse. Coming next.
 - **`Installed` is read from the declared range in `package.json`, not from a lockfile.** For
   a range like `^7.2.0` it shows `7.2.0`, which may not be what is installed.
-- **Unlock is calculated one blocker at a time.** When several packages block the same major,
-  removing any single one changes nothing, so no unlock is shown even though replacing all of
-  them would help.
+- **Unlock is calculated one blocker at a time**, dependency or toolchain axis alike. When
+  several things block the same major, fixing any single one changes nothing, so no unlock is
+  shown even though fixing all of them would help.
 - **Measurability is judged by the newest published version.** A package that declared an
   Angular peer years ago and stopped is treated as unmeasured rather than as a blocker. This
   errs towards a higher ceiling, on purpose.
+- **A toolchain axis that isn't declared at all is unmeasurable, not compatible.** A zoneless
+  Angular project with no `zone.js` dependency produces no zone.js check — it doesn't count as
+  passing.
 
 ## Architecture
 
 ```text
 CLI → project.ts ──┐
-                   ├→ compat.ts → report.ts
-     registry.ts ──┘
+                   ├→ compat.ts ──→ report.ts
+     registry.ts ──┘    │
+                         └→ toolchain-compat.ts
 ```
 
 `registry.ts` is the only module that touches the network and `project.ts` the only one that
 touches disk. Everything that computes is a pure function over plain data, which is why the
-test suite needs no mocks and never reaches the registry.
+test suite needs no mocks and never reaches the registry. `toolchain-compat.ts` mirrors
+`compat.ts` for Angular's own peers on TypeScript, RxJS, zone.js and Node — kept separate
+because it's a genuinely distinct question (third-party packages declare a peer *on* Angular;
+Angular declares peers *on its toolchain*, the other way around) — and `compat.ts` combines
+the two walks by taking the minimum blocked major.
 
 ## Development
 
@@ -159,7 +184,6 @@ runs entirely offline.
 
 ## Roadmap
 
-- Angular toolchain and Node constraints (TypeScript, RxJS, zone.js)
 - Lockfile precedence for detecting installed versions
 - JSON and Markdown output
 - Maintenance signals: deprecated, stale and unmaintained packages
