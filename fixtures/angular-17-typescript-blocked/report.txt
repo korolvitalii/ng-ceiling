@@ -1,0 +1,19 @@
+Angular Upgrade Ceiling
+─────────────────────────────────
+
+Current Angular          17
+Declared ceiling         18  (upper bound)
+Latest Angular           20
+
+First blocked version    Angular 19
+
+Toolchain
+─────────────────────────────────
+
+TypeScript
+
+Installed                ~5.4.0
+Angular 19 requires      >=5.5 <5.9
+
+If upgraded:
+Ceiling                   18 → 20
