@@ -115,13 +115,28 @@ export function findCompatibleVersion(dep: KnownDependency, major: number): stri
   return candidates.find((entry) => rangeCoversMajor(entry.angularRange, major))?.version;
 }
 
-/** The highest Angular major any published version of this package supports. */
+/**
+ * The span of Angular majors any published version of this package supports.
+ *
+ * Some real packages (@angular/pwa, @ngrx/store-devtools) only started
+ * declaring an @angular/* peer directly partway through their history — every
+ * version below that point has no measurable peer at all. Reporting "Angular
+ * <=N" for those would imply continuous support back to Angular 1, directly
+ * beside a "Compatible Angular <lower>: NONE" line for the same package —
+ * self-contradictory, and a violation of the ceiling's honesty guarantee. The
+ * lower bound is only omitted when coverage genuinely starts at Angular 1.
+ */
 export function declaredSupport(dep: KnownDependency, upTo: number): string {
+  let lowest = 0;
   let highest = 0;
   for (let major = 1; major <= upTo; major++) {
-    if (findCompatibleVersion(dep, major) !== undefined) highest = major;
+    if (findCompatibleVersion(dep, major) !== undefined) {
+      if (lowest === 0) lowest = major;
+      highest = major;
+    }
   }
-  return highest === 0 ? 'Angular (none declared)' : `Angular <=${highest}`;
+  if (highest === 0) return 'Angular (none declared)';
+  return lowest === 1 ? `Angular <=${highest}` : `Angular ${lowest}-${highest}`;
 }
 
 export interface CeilingResult {

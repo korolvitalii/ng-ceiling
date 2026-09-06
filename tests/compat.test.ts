@@ -146,12 +146,27 @@ describe('solveCeiling', () => {
 });
 
 describe('declaredSupport', () => {
-  it('reports the highest major any published version supports', () => {
+  it('omits the lower bound when support goes all the way back to Angular 1', () => {
     const stuck = dep('ngx-old-calendar', [
+      ['1.0.0', '^1.0.0'],
       ['6.0.0', '^16.0.0'],
       ['7.2.0', '>=17.0.0 <19.0.0'],
     ]);
     expect(declaredSupport(stuck, 20)).toBe('Angular <=18');
+  });
+
+  it('reports both bounds when support does not reach back to Angular 1', () => {
+    // ngx-old-calendar's real npm history has no version supporting anything
+    // below Angular 16, so "Angular <=18" would read as continuous coverage
+    // back to Angular 1 — false, and printed right beside a "Compatible
+    // Angular <16: NONE" line for the same package. @angular/pwa and
+    // @ngrx/store-devtools hit this for real: both only started declaring an
+    // @angular/* peer directly partway through their published history.
+    const stuck = dep('ngx-old-calendar', [
+      ['6.0.0', '^16.0.0'],
+      ['7.2.0', '>=17.0.0 <19.0.0'],
+    ]);
+    expect(declaredSupport(stuck, 20)).toBe('Angular 16-18');
   });
 });
 
