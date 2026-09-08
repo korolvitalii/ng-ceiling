@@ -5,6 +5,7 @@ import { fetchPackages, RegistryUnavailableError } from './registry';
 import { renderReport } from './report';
 import { renderJsonReport } from './report-json';
 import { renderMarkdownReport } from './report-markdown';
+import { resolveFormat } from './output-format';
 
 const ANGULAR_CORE = '@angular/core';
 
@@ -15,27 +16,15 @@ const ANGULAR_CORE = '@angular/core';
  */
 const ANGULAR_TOOLCHAIN_PACKAGES = [ANGULAR_CORE, '@angular/compiler-cli', '@angular/cli'];
 
-const FORMATS = ['console', 'json', 'markdown'] as const;
-type Format = (typeof FORMATS)[number];
-
 interface Options {
   cwd: string;
   unknown: boolean;
-  format: string;
+  format?: string;
   json: boolean;
 }
 
-/** `--json` is shorthand for `--format json`; an explicit `--format` wins if both are given. */
-function resolveFormat(options: Options): Format {
-  const chosen = options.format !== 'console' ? options.format : options.json ? 'json' : 'console';
-  if (!FORMATS.includes(chosen as Format)) {
-    throw new Error(`unknown --format "${chosen}" (expected one of: ${FORMATS.join(', ')})`);
-  }
-  return chosen as Format;
-}
-
 async function run(options: Options): Promise<void> {
-  const format = resolveFormat(options);
+  const format = resolveFormat(options.format, options.json);
 
   const pkg = readPackageJson(options.cwd);
   const dependencies = toDependencies(pkg);
@@ -69,7 +58,7 @@ const program = new Command()
     "Reports the highest Angular major version your project can reach, and what's blocking it.",
   )
   .option('--cwd <path>', 'project directory to analyse', process.cwd())
-  .option('--format <format>', 'output format: console, json or markdown', 'console')
+  .option('--format <format>', 'output format: console, json or markdown')
   .option('--json', 'shorthand for --format json', false)
   .option('--unknown', 'list the dependencies that declare no Angular constraint', false)
   .action(async (options: Options) => {
