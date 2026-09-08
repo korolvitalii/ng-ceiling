@@ -37,12 +37,18 @@ ng-ceiling --cwd ../my-app        # analyse another project
 ng-ceiling --unknown              # also list the dependencies that could not be measured
 ng-ceiling --json                 # machine-readable output
 ng-ceiling --format markdown      # a report to paste into Jira, GitHub or Confluence
+ng-ceiling --verbose              # registry diagnostics, and full detail on errors
 ```
 
 `--format` takes `console` (the default), `json` or `markdown`; `--json` is
 shorthand for `--format json`. `--unknown` lists the unmeasured dependencies in
 the console and Markdown output; the JSON output always includes them under
 `unknown`.
+
+On an error — no `package.json`, not an Angular project, an unreachable
+registry — ng-ceiling prints a single line to stderr and exits `1`. Add
+`--verbose` for the underlying cause and, while running, a note of which
+packuments were fetched and which the registry did not have.
 
 ## Example output
 

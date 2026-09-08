@@ -1,3 +1,5 @@
+import { NgCeilingError } from './errors';
+
 export const FORMATS = ['console', 'json', 'markdown'] as const;
 export type Format = (typeof FORMATS)[number];
 
@@ -10,7 +12,9 @@ export type Format = (typeof FORMATS)[number];
 export function resolveFormat(format: string | undefined, json: boolean): Format {
   if (format !== undefined) {
     if (!FORMATS.includes(format as Format)) {
-      throw new Error(`unknown --format "${format}" (expected one of: ${FORMATS.join(', ')})`);
+      throw new NgCeilingError(
+        `unknown --format "${format}" (expected one of: ${FORMATS.join(', ')})`,
+      );
     }
     return format as Format;
   }
