@@ -67,19 +67,34 @@ describe('fetchPackages', () => {
     await expect(fetchPackages(['primeng'])).rejects.toThrow('could not reach the npm registry');
   });
 
-  it('reports a timeout distinctly', async () => {
+  it('reports a timeout during the initial response distinctly', async () => {
     fetchMock.mockRejectedValue(new DOMException('The operation timed out', 'TimeoutError'));
     await expect(fetchPackages(['primeng'])).rejects.toThrow('did not respond within 15s');
   });
 
-  it('throws RegistryUnavailableError on a malformed body', async () => {
+  const bodyRejects = (cause: unknown): void => {
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => {
-        throw new SyntaxError('Unexpected end of JSON input');
+        throw cause;
       },
     } as unknown as Response);
+  };
+
+  it('reports a timeout while reading the body as a timeout, not a malformed response', async () => {
+    // fetch() resolves once headers arrive; a stall mid-body aborts response.json().
+    bodyRejects(new DOMException('The operation was aborted', 'TimeoutError'));
+    await expect(fetchPackages(['primeng'])).rejects.toThrow('did not respond within 15s');
+  });
+
+  it('reports a dropped connection while reading the body as unreachable', async () => {
+    bodyRejects(new TypeError('terminated'));
+    await expect(fetchPackages(['primeng'])).rejects.toThrow('could not reach the npm registry');
+  });
+
+  it('throws RegistryUnavailableError only on a genuine JSON parse error', async () => {
+    bodyRejects(new SyntaxError('Unexpected end of JSON input'));
     await expect(fetchPackages(['primeng'])).rejects.toThrow('malformed response');
   });
 });

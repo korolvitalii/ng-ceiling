@@ -34,6 +34,26 @@ function registryUrl(): string {
   return (process.env['npm_config_registry'] ?? DEFAULT_REGISTRY).replace(/\/+$/, '');
 }
 
+/**
+ * A transport failure, mapped to a message. `AbortSignal.timeout` also aborts
+ * the response body stream, so this fires from `response.json()` too when the
+ * connection stalls after the headers arrive — not only from `fetch()` itself.
+ * A `TimeoutError` or `AbortError` DOMException is our own deadline; anything
+ * else that is not a JSON parse error is a dropped or refused connection.
+ */
+function transportError(name: string, cause: unknown): RegistryUnavailableError {
+  if (cause instanceof DOMException && (cause.name === 'TimeoutError' || cause.name === 'AbortError')) {
+    return new RegistryUnavailableError(
+      `the npm registry did not respond within ${REQUEST_TIMEOUT_MS / 1000}s while fetching ${name}`,
+      cause,
+    );
+  }
+  return new RegistryUnavailableError(
+    `could not reach the npm registry while fetching ${name}`,
+    cause,
+  );
+}
+
 /** Fetches one abbreviated packument. A package that does not exist is not an error. */
 async function fetchPackage(name: string): Promise<RegistryPackage | undefined> {
   const url = `${registryUrl()}/${name.replace('/', '%2F')}`;
@@ -45,16 +65,7 @@ async function fetchPackage(name: string): Promise<RegistryPackage | undefined> 
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
   } catch (cause) {
-    if (cause instanceof DOMException && cause.name === 'TimeoutError') {
-      throw new RegistryUnavailableError(
-        `the npm registry did not respond within ${REQUEST_TIMEOUT_MS / 1000}s while fetching ${name}`,
-        cause,
-      );
-    }
-    throw new RegistryUnavailableError(
-      `could not reach the npm registry while fetching ${name}`,
-      cause,
-    );
+    throw transportError(name, cause);
   }
 
   if (response.status === 404) return undefined;
@@ -68,10 +79,13 @@ async function fetchPackage(name: string): Promise<RegistryPackage | undefined> 
   try {
     body = (await response.json()) as AbbreviatedPackument;
   } catch (cause) {
-    throw new RegistryUnavailableError(
-      `the npm registry returned a malformed response for ${name}`,
-      cause,
-    );
+    if (cause instanceof SyntaxError) {
+      throw new RegistryUnavailableError(
+        `the npm registry returned a malformed response for ${name}`,
+        cause,
+      );
+    }
+    throw transportError(name, cause);
   }
 
   return {
