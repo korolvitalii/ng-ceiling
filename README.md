@@ -32,10 +32,17 @@ Requires Node 20 or newer.
 ## Usage
 
 ```bash
-ng-ceiling                    # analyse the current directory
-ng-ceiling --cwd ../my-app    # analyse another project
-ng-ceiling --unknown          # also list the dependencies that could not be measured
+ng-ceiling                        # analyse the current directory
+ng-ceiling --cwd ../my-app        # analyse another project
+ng-ceiling --unknown              # also list the dependencies that could not be measured
+ng-ceiling --json                 # machine-readable output
+ng-ceiling --format markdown      # a report to paste into Jira, GitHub or Confluence
 ```
+
+`--format` takes `console` (the default), `json` or `markdown`; `--json` is
+shorthand for `--format json`. `--unknown` lists the unmeasured dependencies in
+the console and Markdown output; the JSON output always includes them under
+`unknown`.
 
 ## Example output
 
@@ -185,7 +192,6 @@ runs entirely offline.
 ## Roadmap
 
 - Lockfile precedence for detecting installed versions
-- JSON and Markdown output
 - Maintenance signals: deprecated, stale and unmaintained packages
 - pnpm and Yarn lockfiles
 

@@ -1,0 +1,23 @@
+{
+  "currentAngular": 16,
+  "latestAngular": 20,
+  "ceiling": 18,
+  "ceilingIsUpperBound": true,
+  "firstBlocked": 19,
+  "blockers": [
+    {
+      "package": "ngx-old-calendar",
+      "installed": "7.2.0",
+      "declaredSupport": "Angular <=18",
+      "blockedAt": 19,
+      "ceilingIfReplaced": 20
+    }
+  ],
+  "toolchainBlockers": [],
+  "unknownCount": 3,
+  "unknown": [
+    "date-fns",
+    "lodash-es",
+    "uuid"
+  ]
+}
