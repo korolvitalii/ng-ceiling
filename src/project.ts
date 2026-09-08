@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import semver from 'semver';
+import { NgCeilingError } from './errors';
 import type { DeclaredToolchain, NodeVersionSource, ProjectDependency } from './types';
 
 export interface PackageJson {
@@ -38,13 +39,15 @@ export function readPackageJson(cwd: string): PackageJson {
   try {
     raw = readFileSync(file, 'utf8');
   } catch {
-    throw new Error(`no package.json found in ${cwd}`);
+    throw new NgCeilingError(`no package.json found in ${cwd}`, {
+      hint: 'run ng-ceiling from an Angular project directory, or pass --cwd <path>',
+    });
   }
 
   try {
     return JSON.parse(raw) as PackageJson;
-  } catch {
-    throw new Error(`${file} is not valid JSON`);
+  } catch (cause) {
+    throw new NgCeilingError(`${file} is not valid JSON`, { cause });
   }
 }
 

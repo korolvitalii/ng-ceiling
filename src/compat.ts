@@ -1,4 +1,5 @@
 import semver from 'semver';
+import { NgCeilingError } from './errors';
 import { solveToolchainCeiling, toolchainFailuresAt } from './toolchain-compat';
 import type {
   CeilingAnalysis,
@@ -178,11 +179,18 @@ function combinedFirstBlocked(a: number | undefined, b: number | undefined): num
 
 export function currentAngularMajor(dependencies: ProjectDependency[]): number {
   const core = dependencies.find((dep) => dep.name === ANGULAR_CORE);
-  if (core === undefined) throw new Error('not an Angular project: no @angular/core dependency');
+  if (core === undefined) {
+    throw new NgCeilingError('not an Angular project: no @angular/core dependency', {
+      hint: 'ng-ceiling analyses Angular applications; @angular/core must be a direct dependency',
+    });
+  }
 
   const lowest = lowestVersion(core.requestedVersion);
   if (lowest === undefined) {
-    throw new Error(`cannot read an Angular version from "${core.requestedVersion}"`);
+    throw new NgCeilingError(
+      `cannot read an Angular version from the @angular/core range "${core.requestedVersion}"`,
+      { hint: 'the version must be a valid SemVer range, e.g. "^17.3.0" or "17.3.12"' },
+    );
   }
   return semver.major(lowest);
 }
@@ -192,7 +200,9 @@ export function latestAngularMajor(packages: Record<string, RegistryPackage>): n
   const latest = packages[ANGULAR_CORE]?.distTags['latest'];
   const parsed = latest === undefined ? null : semver.parse(latest);
   if (parsed === null) {
-    throw new Error('cannot read the latest Angular major from @angular/core dist-tags');
+    throw new NgCeilingError('cannot read the latest Angular major from the @angular/core dist-tags', {
+      hint: 'the npm registry returned no usable "latest" tag for @angular/core — try again shortly',
+    });
   }
   return parsed.major;
 }

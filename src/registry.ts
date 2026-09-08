@@ -1,4 +1,7 @@
+import { RegistryUnavailableError } from './errors';
 import type { RegistryPackage, RegistryPackageVersion } from './types';
+
+export { RegistryUnavailableError } from './errors';
 
 const DEFAULT_REGISTRY = 'https://registry.npmjs.org';
 
@@ -11,18 +14,20 @@ const ABBREVIATED = 'application/vnd.npm.install-v1+json';
 
 const CONCURRENCY = 8;
 
-export class RegistryUnavailableError extends Error {
-  constructor(packageName: string, cause: unknown) {
-    super(`could not reach the npm registry while fetching ${packageName}`);
-    this.name = 'RegistryUnavailableError';
-    this.cause = cause;
-  }
-}
+/** Per-request ceiling. A hung connection must not hang the whole CLI. */
+const REQUEST_TIMEOUT_MS = 15_000;
 
 interface AbbreviatedPackument {
   name?: string;
   'dist-tags'?: Record<string, string>;
   versions?: Record<string, Omit<RegistryPackageVersion, 'version'>>;
+}
+
+/** What one run learned from the registry: the packuments found, and the names that 404'd. */
+export interface RegistryResult {
+  packages: Record<string, RegistryPackage>;
+  /** Names the registry has no record of. Treated as unverified, never as blockers. */
+  notFound: string[];
 }
 
 function registryUrl(): string {
@@ -35,15 +40,40 @@ async function fetchPackage(name: string): Promise<RegistryPackage | undefined> 
 
   let response: Response;
   try {
-    response = await fetch(url, { headers: { Accept: ABBREVIATED } });
+    response = await fetch(url, {
+      headers: { Accept: ABBREVIATED },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
   } catch (cause) {
-    throw new RegistryUnavailableError(name, cause);
+    if (cause instanceof DOMException && cause.name === 'TimeoutError') {
+      throw new RegistryUnavailableError(
+        `the npm registry did not respond within ${REQUEST_TIMEOUT_MS / 1000}s while fetching ${name}`,
+        cause,
+      );
+    }
+    throw new RegistryUnavailableError(
+      `could not reach the npm registry while fetching ${name}`,
+      cause,
+    );
   }
 
   if (response.status === 404) return undefined;
-  if (!response.ok) throw new RegistryUnavailableError(name, new Error(`HTTP ${response.status}`));
+  if (!response.ok) {
+    throw new RegistryUnavailableError(
+      `the npm registry returned HTTP ${response.status} while fetching ${name}`,
+    );
+  }
 
-  const body = (await response.json()) as AbbreviatedPackument;
+  let body: AbbreviatedPackument;
+  try {
+    body = (await response.json()) as AbbreviatedPackument;
+  } catch (cause) {
+    throw new RegistryUnavailableError(
+      `the npm registry returned a malformed response for ${name}`,
+      cause,
+    );
+  }
+
   return {
     name: body.name ?? name,
     distTags: body['dist-tags'] ?? {},
@@ -55,20 +85,22 @@ async function fetchPackage(name: string): Promise<RegistryPackage | undefined> 
 }
 
 /**
- * Fetches every package once, at a bounded concurrency. The Map is per run —
+ * Fetches every package once, at a bounded concurrency. The result is per run —
  * a disk cache is only worth adding if repeated runs actually feel slow.
  */
-export async function fetchPackages(names: string[]): Promise<Record<string, RegistryPackage>> {
+export async function fetchPackages(names: string[]): Promise<RegistryResult> {
   const queue = [...new Set(names)];
   const found = new Map<string, RegistryPackage>();
+  const notFound: string[] = [];
 
   const worker = async (): Promise<void> => {
     for (let name = queue.pop(); name !== undefined; name = queue.pop()) {
       const pkg = await fetchPackage(name);
-      if (pkg !== undefined) found.set(name, pkg);
+      if (pkg === undefined) notFound.push(name);
+      else found.set(name, pkg);
     }
   };
 
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, queue.length) }, worker));
-  return Object.fromEntries(found);
+  return { packages: Object.fromEntries(found), notFound: notFound.sort() };
 }
