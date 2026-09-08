@@ -94,6 +94,22 @@ export function renderReport(analysis: CeilingAnalysis, options: ReportOptions =
     }
   }
 
+  if (analysis.requiredUpgrades.length > 0) {
+    lines.push('', `Upgrades required for Angular ${analysis.declaredCeiling}`, RULE, '');
+
+    for (const upgrade of analysis.requiredUpgrades) {
+      lines.push(
+        row(upgrade.packageName, `${upgrade.installedVersion} → ${upgrade.minCompatibleVersion}`),
+      );
+    }
+
+    lines.push(
+      '',
+      'The ceiling assumes these are upgraded. No version in the',
+      `declared range supports Angular ${analysis.declaredCeiling}.`,
+    );
+  }
+
   const unknown = analysis.unknownDependencies;
   if (unknown.length > 0) {
     lines.push('', 'Unverified', RULE, '');

@@ -1,17 +1,36 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  analyze,
   angularPeerRange,
   declaredSupport,
   findCompatibleVersion,
   rangeCoversMajor,
+  requiredUpgradesAt,
   solveCeiling,
   toSupportedVersions,
 } from '../src/compat';
+import { toDependencies, type PackageJson } from '../src/project';
 import type { KnownDependency, RegistryPackage } from '../src/types';
 
 const dep = (name: string, supported: [string, string][]): KnownDependency => ({
   name,
   installedVersion: supported[0]?.[0] ?? '0.0.0',
+  requestedRange: supported[0]?.[0] ?? '0.0.0',
+  supported: supported.map(([version, angularRange]) => ({ version, angularRange })),
+});
+
+/** Like `dep`, but with a declared range that differs from the installed version. */
+const depRanged = (
+  name: string,
+  requestedRange: string,
+  installedVersion: string,
+  supported: [string, string][],
+): KnownDependency => ({
+  name,
+  installedVersion,
+  requestedRange,
   supported: supported.map(([version, angularRange]) => ({ version, angularRange })),
 });
 
@@ -142,6 +161,147 @@ describe('solveCeiling', () => {
 
   it('ignores dependencies that were removed, which is how unlock works', () => {
     expect(solveCeiling([healthy], 16, 20).ceiling).toBe(20);
+  });
+});
+
+describe('requiredUpgradesAt', () => {
+  const primeng = dep('primeng', [
+    ['16.9.1', '^16.0.0'],
+    ['17.0.0', '^17.0.0'],
+    ['18.0.2', '^18.0.0'],
+  ]);
+
+  it('flags a pinned dependency whose installed version cannot reach the ceiling', () => {
+    expect(requiredUpgradesAt([primeng], 18)).toEqual([
+      {
+        packageName: 'primeng',
+        installedVersion: '16.9.1',
+        minCompatibleVersion: '18.0.2',
+        targetMajor: 18,
+      },
+    ]);
+  });
+
+  it('says nothing when the installed version already supports the ceiling', () => {
+    expect(requiredUpgradesAt([primeng], 16)).toEqual([]);
+  });
+
+  it('says nothing when a version inside a caret range already reaches the ceiling', () => {
+    const spanning = depRanged('ngx-wide', '^17.0.0', '17.1.0', [
+      ['17.0.0', '^17.0.0'],
+      ['17.5.0', '>=17.0.0 <19.0.0'],
+    ]);
+    expect(requiredUpgradesAt([spanning], 18)).toEqual([]);
+  });
+
+  it('leaves a hard blocker — no compatible version at all — to the blocker analysis', () => {
+    const stuck = dep('ngx-old', [
+      ['6.0.0', '^16.0.0'],
+      ['7.0.0', '^17.0.0'],
+    ]);
+    expect(requiredUpgradesAt([stuck], 19)).toEqual([]);
+  });
+
+  it('excludes @angular/* packages — they move with the framework major', () => {
+    const ngCommon = dep('@angular/common', [
+      ['16.2.12', '^16.0.0'],
+      ['18.2.13', '^18.0.0'],
+    ]);
+    expect(requiredUpgradesAt([ngCommon], 18)).toEqual([]);
+  });
+
+  it('reports the target major of the lowest compatible version, not the ceiling', () => {
+    // no v18 line — the first version to support Angular 18 is a v19 release
+    const jumped = dep('ngx-jump', [
+      ['16.0.0', '^16.0.0'],
+      ['19.0.0', '>=18.0.0 <20.0.0'],
+    ]);
+    expect(requiredUpgradesAt([jumped], 18)[0]).toMatchObject({
+      minCompatibleVersion: '19.0.0',
+      targetMajor: 19,
+    });
+  });
+
+  it('sorts by package name', () => {
+    const zebra = dep('zebra-ui', [['16.0.0', '^16.0.0'], ['18.0.0', '^18.0.0']]);
+    const alpha = dep('alpha-ui', [['16.0.0', '^16.0.0'], ['18.0.0', '^18.0.0']]);
+    expect(requiredUpgradesAt([zebra, alpha], 18).map((u) => u.packageName)).toEqual([
+      'alpha-ui',
+      'zebra-ui',
+    ]);
+  });
+
+  it('never recommends a downgrade when the peer history is not monotonic', () => {
+    // v5 supports Angular 18, v6 drops it, v7 picks it back up. A v6 project
+    // must be pointed at v7, not back at v5.
+    const wobbly = depRanged('ngx-wobbly', '6.0.0', '6.0.0', [
+      ['5.0.0', '>=17.0.0 <19.0.0'],
+      ['6.0.0', '^17.0.0'],
+      ['7.0.0', '^18.0.0'],
+    ]);
+    expect(requiredUpgradesAt([wobbly], 18)).toEqual([
+      {
+        packageName: 'ngx-wobbly',
+        installedVersion: '6.0.0',
+        minCompatibleVersion: '7.0.0',
+        targetMajor: 7,
+      },
+    ]);
+  });
+
+  it('skips a dependency whose only compatible versions are older than installed', () => {
+    const backwards = depRanged('ngx-backwards', '6.0.0', '6.0.0', [
+      ['5.0.0', '^18.0.0'],
+      ['6.0.0', '^17.0.0'],
+    ]);
+    expect(requiredUpgradesAt([backwards], 18)).toEqual([]);
+  });
+
+  it('falls back to the installed version when the declared range is unparseable', () => {
+    const weird = depRanged('ngx-weird', 'garbage', '16.0.0', [
+      ['16.0.0', '^16.0.0'],
+      ['18.0.0', '^18.0.0'],
+    ]);
+    expect(requiredUpgradesAt([weird], 18)).toEqual([
+      {
+        packageName: 'ngx-weird',
+        installedVersion: '16.0.0',
+        minCompatibleVersion: '18.0.0',
+        targetMajor: 18,
+      },
+    ]);
+  });
+
+  it('leaves a dist-tag declaration alone instead of feeding it to semver', () => {
+    const tagged = depRanged('ngx-tagged', 'latest', 'latest', [
+      ['16.0.0', '^16.0.0'],
+      ['18.0.0', '^18.0.0'],
+    ]);
+    expect(() => requiredUpgradesAt([tagged], 18)).not.toThrow();
+    expect(requiredUpgradesAt([tagged], 18)).toEqual([]);
+  });
+});
+
+describe('analyze — non-SemVer dependency declarations', () => {
+  const fixture = (name: string): string =>
+    readFileSync(
+      fileURLToPath(new URL(`../fixtures/angular-16-hard-blocker/${name}`, import.meta.url)),
+      'utf8',
+    );
+  const packages = JSON.parse(fixture('packuments.json')) as Record<string, RegistryPackage>;
+  const basePkg = JSON.parse(fixture('package.json')) as PackageJson;
+
+  it('does not crash when a dependency is pinned to a dist-tag', () => {
+    const pkg: PackageJson = {
+      ...basePkg,
+      dependencies: { ...basePkg.dependencies, primeng: 'latest' },
+    };
+
+    const analysis = analyze(toDependencies(pkg), packages, {});
+
+    expect(analysis.declaredCeiling).toBe(18);
+    // "latest" has no concrete version to compare, so primeng is not advised.
+    expect(analysis.requiredUpgrades.map((u) => u.packageName)).toEqual(['@ngrx/store']);
   });
 });
 

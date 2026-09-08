@@ -19,6 +19,15 @@ Compatible Angular 19    NONE
 If replaced:
 Ceiling                   18 → 20
 
+Upgrades required for Angular 18
+─────────────────────────────────
+
+@ngrx/store              16.3.0 → 18.1.1
+primeng                  16.9.1 → 18.0.2
+
+The ceiling assumes these are upgraded. No version in the
+declared range supports Angular 18.
+
 Unverified
 ─────────────────────────────────
 
