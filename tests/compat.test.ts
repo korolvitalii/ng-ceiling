@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  analyze,
   angularPeerRange,
   declaredSupport,
   findCompatibleVersion,
@@ -8,6 +11,7 @@ import {
   solveCeiling,
   toSupportedVersions,
 } from '../src/compat';
+import { toDependencies, type PackageJson } from '../src/project';
 import type { KnownDependency, RegistryPackage } from '../src/types';
 
 const dep = (name: string, supported: [string, string][]): KnownDependency => ({
@@ -266,6 +270,38 @@ describe('requiredUpgradesAt', () => {
         targetMajor: 18,
       },
     ]);
+  });
+
+  it('leaves a dist-tag declaration alone instead of feeding it to semver', () => {
+    const tagged = depRanged('ngx-tagged', 'latest', 'latest', [
+      ['16.0.0', '^16.0.0'],
+      ['18.0.0', '^18.0.0'],
+    ]);
+    expect(() => requiredUpgradesAt([tagged], 18)).not.toThrow();
+    expect(requiredUpgradesAt([tagged], 18)).toEqual([]);
+  });
+});
+
+describe('analyze — non-SemVer dependency declarations', () => {
+  const fixture = (name: string): string =>
+    readFileSync(
+      fileURLToPath(new URL(`../fixtures/angular-16-hard-blocker/${name}`, import.meta.url)),
+      'utf8',
+    );
+  const packages = JSON.parse(fixture('packuments.json')) as Record<string, RegistryPackage>;
+  const basePkg = JSON.parse(fixture('package.json')) as PackageJson;
+
+  it('does not crash when a dependency is pinned to a dist-tag', () => {
+    const pkg: PackageJson = {
+      ...basePkg,
+      dependencies: { ...basePkg.dependencies, primeng: 'latest' },
+    };
+
+    const analysis = analyze(toDependencies(pkg), packages, {});
+
+    expect(analysis.declaredCeiling).toBe(18);
+    // "latest" has no concrete version to compare, so primeng is not advised.
+    expect(analysis.requiredUpgrades.map((u) => u.packageName)).toEqual(['@ngrx/store']);
   });
 });
 

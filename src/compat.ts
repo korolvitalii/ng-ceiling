@@ -159,17 +159,20 @@ function versionsInRange(dep: KnownDependency): SupportedVersion[] {
 
 /**
  * The lowest published version that both supports `major` and is an actual
- * upgrade from what is installed. Peer histories are not always monotonic — a
- * package can support Angular N at v5, drop it at v6, and pick it up again at
- * v7 — so `findCompatibleVersion` (the oldest match, used for the ceiling walk)
- * would point a v6 project at v5. That is a downgrade, never a recommendation.
+ * upgrade from `from`. Peer histories are not always monotonic — a package can
+ * support Angular N at v5, drop it at v6, and pick it up again at v7 — so
+ * `findCompatibleVersion` (the oldest match, used for the ceiling walk) would
+ * point a v6 project at v5. That is a downgrade, never a recommendation.
  */
-function lowestForwardUpgrade(dep: KnownDependency, major: number): string | undefined {
+function lowestForwardUpgrade(
+  dep: KnownDependency,
+  from: string,
+  major: number,
+): string | undefined {
   const stable = dep.supported.filter((entry) => semver.prerelease(entry.version) === null);
   const candidates = stable.length > 0 ? stable : dep.supported;
   return candidates.find(
-    (entry) =>
-      semver.gt(entry.version, dep.installedVersion) && rangeCoversMajor(entry.angularRange, major),
+    (entry) => semver.gt(entry.version, from) && rangeCoversMajor(entry.angularRange, major),
   )?.version;
 }
 
@@ -183,15 +186,24 @@ function lowestForwardUpgrade(dep: KnownDependency, major: number): string | und
  * an upgrade, and is left to the blocker analysis. A dependency whose only
  * compatible versions are *older* than what is installed is skipped too — there
  * is no forward move to recommend.
+ *
+ * `installedVersion` can be a dist-tag (`latest`), a git URL or `workspace:*` —
+ * anything a package.json range field accepts. Without a concrete version there
+ * is nothing to compare against, so the dependency is left alone rather than
+ * guessed at (and rather than crashing `semver.gt`).
  */
 export function requiredUpgradesAt(deps: KnownDependency[], major: number): RequiredUpgrade[] {
   const upgrades: RequiredUpgrade[] = [];
 
   for (const dep of deps) {
     if (dep.name.startsWith(ANGULAR_SCOPE)) continue;
+
+    const installed = semver.valid(dep.installedVersion);
+    if (installed === null) continue;
+
     if (versionsInRange(dep).some((entry) => rangeCoversMajor(entry.angularRange, major))) continue;
 
-    const minCompatibleVersion = lowestForwardUpgrade(dep, major);
+    const minCompatibleVersion = lowestForwardUpgrade(dep, installed, major);
     if (minCompatibleVersion === undefined) continue;
 
     upgrades.push({
