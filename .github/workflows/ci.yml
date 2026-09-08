@@ -22,6 +22,11 @@ jobs:
 
       - run: npm run typecheck
 
-      - run: npm run test:run
+      # vitest 5.0.0 intermittently fails test collection on a cold transform
+      # ("failed to find the current suite" across every file), always passing on
+      # a second run. Retrying once is the right response to a bug that clears on
+      # retry; a genuine failure fails both attempts. Windows-only so far, never
+      # seen on this runner — the retry is insurance for the cold-clone case.
+      - run: npm run test:run || npm run test:run
 
       - run: npm run build
