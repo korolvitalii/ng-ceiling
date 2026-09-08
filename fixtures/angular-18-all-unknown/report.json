@@ -1,0 +1,17 @@
+{
+  "currentAngular": 18,
+  "latestAngular": 20,
+  "ceiling": 20,
+  "ceilingIsUpperBound": true,
+  "firstBlocked": null,
+  "blockers": [],
+  "toolchainBlockers": [],
+  "requiredUpgrades": [],
+  "unknownCount": 4,
+  "unknown": [
+    "chart.js",
+    "date-fns",
+    "lodash-es",
+    "uuid"
+  ]
+}

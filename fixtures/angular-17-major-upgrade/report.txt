@@ -1,0 +1,15 @@
+Angular Upgrade Ceiling
+─────────────────────────────────
+
+Current Angular          17
+Declared ceiling         20  (upper bound)
+Latest Angular           20
+
+Upgrades required for Angular 20
+─────────────────────────────────
+
+@ngrx/store              17.2.0 → 20.0.1
+primeng                  17.18.15 → 20.0.2
+
+The ceiling assumes these are upgraded. No version in the
+declared range supports Angular 20.

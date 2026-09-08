@@ -195,9 +195,10 @@ node dist/cli.js --cwd ../some-angular-app
 npm run test:run
 ```
 
-The console report is covered by a golden test compared byte for byte against a recorded
-fixture, including a recorded `@angular/core` packument, so the suite is deterministic and
-runs entirely offline.
+Every report format is covered by golden tests compared byte for byte against recorded
+fixtures under `fixtures/`, each including recorded packuments, so the suite is
+deterministic and runs entirely offline. Integration tests drive the whole pipeline —
+project reading through rendering — with only the network faked.
 
 ## Roadmap
 

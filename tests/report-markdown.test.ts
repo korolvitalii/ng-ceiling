@@ -17,16 +17,19 @@ const analyzeFixture = (dir: string): CeilingAnalysis => {
 };
 
 describe('golden Markdown reports', () => {
+  // The goldens are rendered with default options, matching what `runCeiling`
+  // emits without --unknown — the same invocation report.txt and report.json
+  // are frozen against. The listUnknown path has its own structural test below.
   it('matches report.md for the hard-blocker fixture byte for byte', () => {
-    expect(
-      renderMarkdownReport(analyzeFixture('angular-16-hard-blocker'), { listUnknown: true }),
-    ).toBe(fixture('angular-16-hard-blocker', 'report.md'));
+    expect(renderMarkdownReport(analyzeFixture('angular-16-hard-blocker'))).toBe(
+      fixture('angular-16-hard-blocker', 'report.md'),
+    );
   });
 
   it('matches report.md for the typescript-blocked fixture byte for byte', () => {
-    expect(
-      renderMarkdownReport(analyzeFixture('angular-17-typescript-blocked'), { listUnknown: true }),
-    ).toBe(fixture('angular-17-typescript-blocked', 'report.md'));
+    expect(renderMarkdownReport(analyzeFixture('angular-17-typescript-blocked'))).toBe(
+      fixture('angular-17-typescript-blocked', 'report.md'),
+    );
   });
 });
 

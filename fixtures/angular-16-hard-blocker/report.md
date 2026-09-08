@@ -29,9 +29,7 @@ The ceiling assumes these are upgraded — no version in their declared range su
 
 3 dependencies declare no Angular constraint. They are excluded from the ceiling above.
 
-- date-fns
-- lodash-es
-- uuid
+Run with `--unknown` to list them.
 
 ---
 
