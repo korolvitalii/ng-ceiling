@@ -1,0 +1,13 @@
+{
+  "name": "acme-all-unknown",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@angular/core": "18.2.13",
+    "@angular/common": "18.2.13",
+    "chart.js": "4.4.0",
+    "date-fns": "3.6.0",
+    "lodash-es": "4.17.21",
+    "uuid": "9.0.1"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "acme-clean",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@angular/core": "16.2.12",
+    "@angular/common": "16.2.12",
+    "@angular/router": "16.2.12",
+    "@ngrx/store": ">=16.0.0",
+    "tslib": "^2.3.0"
+  }
+}

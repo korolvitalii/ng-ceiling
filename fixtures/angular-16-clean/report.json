@@ -1,0 +1,14 @@
+{
+  "currentAngular": 16,
+  "latestAngular": 20,
+  "ceiling": 20,
+  "ceilingIsUpperBound": true,
+  "firstBlocked": null,
+  "blockers": [],
+  "toolchainBlockers": [],
+  "requiredUpgrades": [],
+  "unknownCount": 1,
+  "unknown": [
+    "tslib"
+  ]
+}

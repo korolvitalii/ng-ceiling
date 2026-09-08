@@ -1,0 +1,29 @@
+{
+  "currentAngular": 18,
+  "latestAngular": 20,
+  "ceiling": 18,
+  "ceilingIsUpperBound": true,
+  "firstBlocked": 19,
+  "blockers": [
+    {
+      "package": "ngx-legacy-charts",
+      "installed": "18.5.0",
+      "declaredSupport": "Angular 15-18",
+      "blockedAt": 19,
+      "ceilingIfReplaced": null
+    },
+    {
+      "package": "ngx-legacy-grid",
+      "installed": "18.0.0",
+      "declaredSupport": "Angular 17-18",
+      "blockedAt": 19,
+      "ceilingIfReplaced": null
+    }
+  ],
+  "toolchainBlockers": [],
+  "requiredUpgrades": [],
+  "unknownCount": 1,
+  "unknown": [
+    "old-i18n-lib"
+  ]
+}

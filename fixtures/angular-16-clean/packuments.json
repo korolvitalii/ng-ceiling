@@ -1,0 +1,54 @@
+{
+  "@angular/core": {
+    "name": "@angular/core",
+    "distTags": { "latest": "20.3.0" },
+    "versions": [
+      { "version": "16.2.12", "peerDependencies": { "@angular/compiler": "16.2.12", "rxjs": "^6.5.3 || ^7.4.0", "zone.js": "~0.13.0" }, "peerDependenciesMeta": { "@angular/compiler": { "optional": true } } },
+      { "version": "17.3.12", "peerDependencies": { "@angular/compiler": "17.3.12", "rxjs": "^6.5.3 || ^7.4.0", "zone.js": "~0.14.0" }, "peerDependenciesMeta": { "@angular/compiler": { "optional": true } } },
+      { "version": "18.2.13", "peerDependencies": { "@angular/compiler": "18.2.13", "rxjs": "^6.5.3 || ^7.4.0", "zone.js": "~0.14.10" }, "peerDependenciesMeta": { "@angular/compiler": { "optional": true } } },
+      { "version": "19.2.14", "peerDependencies": { "@angular/compiler": "19.2.14", "rxjs": "^6.5.3 || ^7.4.0", "zone.js": "~0.15.0" }, "peerDependenciesMeta": { "@angular/compiler": { "optional": true }, "zone.js": { "optional": true } } },
+      { "version": "20.3.0", "peerDependencies": { "@angular/compiler": "20.3.0", "rxjs": "^6.5.3 || ^7.4.0", "zone.js": "~0.15.0" }, "peerDependenciesMeta": { "@angular/compiler": { "optional": true }, "zone.js": { "optional": true } } }
+    ]
+  },
+  "@angular/common": {
+    "name": "@angular/common",
+    "distTags": { "latest": "20.3.0" },
+    "versions": [
+      { "version": "16.2.12", "peerDependencies": { "@angular/core": "16.2.12", "rxjs": "^6.5.3 || ^7.4.0" } },
+      { "version": "17.3.12", "peerDependencies": { "@angular/core": "17.3.12", "rxjs": "^6.5.3 || ^7.4.0" } },
+      { "version": "18.2.13", "peerDependencies": { "@angular/core": "18.2.13", "rxjs": "^6.5.3 || ^7.4.0" } },
+      { "version": "19.2.14", "peerDependencies": { "@angular/core": "19.2.14", "rxjs": "^6.5.3 || ^7.4.0" } },
+      { "version": "20.3.0", "peerDependencies": { "@angular/core": "20.3.0", "rxjs": "^6.5.3 || ^7.4.0" } }
+    ]
+  },
+  "@angular/router": {
+    "name": "@angular/router",
+    "distTags": { "latest": "20.3.0" },
+    "versions": [
+      { "version": "16.2.12" },
+      { "version": "17.3.12" },
+      { "version": "18.2.13" },
+      { "version": "19.2.14" },
+      { "version": "20.3.0" }
+    ]
+  },
+  "@ngrx/store": {
+    "name": "@ngrx/store",
+    "distTags": { "latest": "20.0.1" },
+    "versions": [
+      { "version": "16.3.0", "peerDependencies": { "@angular/core": "^16.0.0", "rxjs": "^6.5.3 || ^7.5.0" } },
+      { "version": "17.2.0", "peerDependencies": { "@angular/core": "^17.0.0", "rxjs": "^6.5.3 || ^7.5.0" } },
+      { "version": "18.1.1", "peerDependencies": { "@angular/core": "^18.0.0", "rxjs": "^6.5.3 || ^7.5.0" } },
+      { "version": "19.2.1", "peerDependencies": { "@angular/core": "^19.0.0", "rxjs": "^6.5.3 || ^7.5.0" } },
+      { "version": "20.0.1", "peerDependencies": { "@angular/core": "^20.0.0", "rxjs": "^6.5.3 || ^7.8.0" } }
+    ]
+  },
+  "tslib": {
+    "name": "tslib",
+    "distTags": { "latest": "2.6.3" },
+    "versions": [
+      { "version": "2.3.0" },
+      { "version": "2.6.3" }
+    ]
+  }
+}

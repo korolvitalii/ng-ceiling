@@ -1,0 +1,13 @@
+Angular Upgrade Ceiling
+─────────────────────────────────
+
+Current Angular          18
+Declared ceiling         20  (upper bound)
+Latest Angular           20
+
+Unverified
+─────────────────────────────────
+
+4 dependencies declare no Angular constraint.
+They are excluded from the ceiling above.
+Run with --unknown to list them.

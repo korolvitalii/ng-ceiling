@@ -1,0 +1,25 @@
+{
+  "currentAngular": 17,
+  "latestAngular": 20,
+  "ceiling": 20,
+  "ceilingIsUpperBound": true,
+  "firstBlocked": null,
+  "blockers": [],
+  "toolchainBlockers": [],
+  "requiredUpgrades": [
+    {
+      "package": "@ngrx/store",
+      "installed": "17.2.0",
+      "minVersion": "20.0.1",
+      "targetMajor": 20
+    },
+    {
+      "package": "primeng",
+      "installed": "17.18.15",
+      "minVersion": "20.0.2",
+      "targetMajor": 20
+    }
+  ],
+  "unknownCount": 0,
+  "unknown": []
+}

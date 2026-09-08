@@ -1,0 +1,12 @@
+{
+  "name": "acme-multi-blocked",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@angular/core": "18.2.13",
+    "@angular/common": "18.2.13",
+    "ngx-legacy-charts": "18.5.0",
+    "ngx-legacy-grid": "18.0.0",
+    "old-i18n-lib": "2.1.0"
+  }
+}
