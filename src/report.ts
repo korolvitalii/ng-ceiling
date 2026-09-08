@@ -98,7 +98,9 @@ export function renderReport(analysis: CeilingAnalysis, options: ReportOptions =
     lines.push('', `Upgrades required for Angular ${analysis.declaredCeiling}`, RULE, '');
 
     for (const upgrade of analysis.requiredUpgrades) {
-      lines.push(row(upgrade.packageName, `${upgrade.installedVersion} → ${upgrade.targetMajor}`));
+      lines.push(
+        row(upgrade.packageName, `${upgrade.installedVersion} → ${upgrade.minCompatibleVersion}`),
+      );
     }
 
     lines.push(

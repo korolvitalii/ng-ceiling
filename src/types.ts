@@ -48,7 +48,7 @@ export interface KnownDependency {
 export interface RequiredUpgrade {
   packageName: string;
   installedVersion: string;
-  /** The lowest published version that supports the ceiling major. */
+  /** Lowest published version that supports the ceiling major and is newer than installed. */
   minCompatibleVersion: string;
   /** The major of minCompatibleVersion — the "bump to vN" number. */
   targetMajor: number;

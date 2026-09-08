@@ -227,6 +227,32 @@ describe('requiredUpgradesAt', () => {
     ]);
   });
 
+  it('never recommends a downgrade when the peer history is not monotonic', () => {
+    // v5 supports Angular 18, v6 drops it, v7 picks it back up. A v6 project
+    // must be pointed at v7, not back at v5.
+    const wobbly = depRanged('ngx-wobbly', '6.0.0', '6.0.0', [
+      ['5.0.0', '>=17.0.0 <19.0.0'],
+      ['6.0.0', '^17.0.0'],
+      ['7.0.0', '^18.0.0'],
+    ]);
+    expect(requiredUpgradesAt([wobbly], 18)).toEqual([
+      {
+        packageName: 'ngx-wobbly',
+        installedVersion: '6.0.0',
+        minCompatibleVersion: '7.0.0',
+        targetMajor: 7,
+      },
+    ]);
+  });
+
+  it('skips a dependency whose only compatible versions are older than installed', () => {
+    const backwards = depRanged('ngx-backwards', '6.0.0', '6.0.0', [
+      ['5.0.0', '^18.0.0'],
+      ['6.0.0', '^17.0.0'],
+    ]);
+    expect(requiredUpgradesAt([backwards], 18)).toEqual([]);
+  });
+
   it('falls back to the installed version when the declared range is unparseable', () => {
     const weird = depRanged('ngx-weird', 'garbage', '16.0.0', [
       ['16.0.0', '^16.0.0'],

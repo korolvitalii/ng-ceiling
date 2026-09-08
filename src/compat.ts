@@ -158,13 +158,31 @@ function versionsInRange(dep: KnownDependency): SupportedVersion[] {
 }
 
 /**
+ * The lowest published version that both supports `major` and is an actual
+ * upgrade from what is installed. Peer histories are not always monotonic — a
+ * package can support Angular N at v5, drop it at v6, and pick it up again at
+ * v7 — so `findCompatibleVersion` (the oldest match, used for the ceiling walk)
+ * would point a v6 project at v5. That is a downgrade, never a recommendation.
+ */
+function lowestForwardUpgrade(dep: KnownDependency, major: number): string | undefined {
+  const stable = dep.supported.filter((entry) => semver.prerelease(entry.version) === null);
+  const candidates = stable.length > 0 ? stable : dep.supported;
+  return candidates.find(
+    (entry) =>
+      semver.gt(entry.version, dep.installedVersion) && rangeCoversMajor(entry.angularRange, major),
+  )?.version;
+}
+
+/**
  * The dependencies whose declared range must be bumped to reach `major`: no
  * version they would resolve to today supports it, but a higher one does.
  *
  * `@angular/*` packages are excluded — they move in lockstep with the framework
  * major, so upgrading Angular upgrades them by definition and listing them is
  * noise. A dependency with no compatible version at all is a hard blocker, not
- * an upgrade, and is left to the blocker analysis.
+ * an upgrade, and is left to the blocker analysis. A dependency whose only
+ * compatible versions are *older* than what is installed is skipped too — there
+ * is no forward move to recommend.
  */
 export function requiredUpgradesAt(deps: KnownDependency[], major: number): RequiredUpgrade[] {
   const upgrades: RequiredUpgrade[] = [];
@@ -173,7 +191,7 @@ export function requiredUpgradesAt(deps: KnownDependency[], major: number): Requ
     if (dep.name.startsWith(ANGULAR_SCOPE)) continue;
     if (versionsInRange(dep).some((entry) => rangeCoversMajor(entry.angularRange, major))) continue;
 
-    const minCompatibleVersion = findCompatibleVersion(dep, major);
+    const minCompatibleVersion = lowestForwardUpgrade(dep, major);
     if (minCompatibleVersion === undefined) continue;
 
     upgrades.push({
