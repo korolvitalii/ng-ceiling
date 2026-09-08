@@ -8,7 +8,7 @@
     {
       "package": "ngx-old-calendar",
       "installed": "7.2.0",
-      "declaredSupport": "Angular <=18",
+      "declaredSupport": "Angular 15-18",
       "blockedAt": 19,
       "ceilingIfReplaced": 20
     }

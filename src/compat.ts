@@ -121,27 +121,41 @@ export function findCompatibleVersion(dep: KnownDependency, major: number): stri
 }
 
 /**
- * The span of Angular majors any published version of this package supports.
+ * The Angular majors any published version of this package supports, summarised
+ * for a human. Non-contiguous on purpose.
  *
- * Some real packages (@angular/pwa, @ngrx/store-devtools) only started
- * declaring an @angular/* peer directly partway through their history — every
- * version below that point has no measurable peer at all. Reporting "Angular
- * <=N" for those would imply continuous support back to Angular 1, directly
- * beside a "Compatible Angular <lower>: NONE" line for the same package —
- * self-contradictory, and a violation of the ceiling's honesty guarantee. The
- * lower bound is only omitted when coverage genuinely starts at Angular 1.
+ * Two ways a package ends up with holes: it started declaring an @angular/*
+ * peer only partway through its history (@angular/pwa, @ngrx/store-devtools),
+ * or it dropped the declaration for a stretch and picked it back up
+ * (@fortawesome/angular-fontawesome had no core peer for 0.10–0.11.0). Either
+ * way, "Angular 5-22" printed next to "Compatible Angular 13: NONE" for the
+ * same package reads as a contradiction, so the gap is shown: "Angular 5-12,
+ * 14-22".
+ *
+ * `<=N` is used only when coverage really is contiguous from Angular 1 — the
+ * one case where omitting the lower bound is not misleading.
  */
 export function declaredSupport(dep: KnownDependency, upTo: number): string {
-  let lowest = 0;
-  let highest = 0;
+  const covered: number[] = [];
   for (let major = 1; major <= upTo; major++) {
-    if (findCompatibleVersion(dep, major) !== undefined) {
-      if (lowest === 0) lowest = major;
-      highest = major;
-    }
+    if (findCompatibleVersion(dep, major) !== undefined) covered.push(major);
   }
-  if (highest === 0) return 'Angular (none declared)';
-  return lowest === 1 ? `Angular <=${highest}` : `Angular ${lowest}-${highest}`;
+  if (covered.length === 0) return 'Angular (none declared)';
+
+  const segments: [number, number][] = [];
+  for (const major of covered) {
+    const last = segments.at(-1);
+    if (last !== undefined && major === last[1] + 1) last[1] = major;
+    else segments.push([major, major]);
+  }
+
+  const first = segments[0]!;
+  if (segments.length === 1 && first[0] === 1 && first[1] > 1) {
+    return `Angular <=${first[1]}`;
+  }
+
+  const render = ([lo, hi]: [number, number]): string => (lo === hi ? `${lo}` : `${lo}-${hi}`);
+  return `Angular ${segments.map(render).join(', ')}`;
 }
 
 /** Every known dependency with no compatible published version at this major. */

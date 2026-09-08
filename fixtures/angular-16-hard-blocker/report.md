@@ -12,7 +12,7 @@
 ### ngx-old-calendar
 
 - Installed: `7.2.0`
-- Declared support: Angular <=18
+- Declared support: Angular 15-18
 - Compatible with Angular 19: **none**
 - If replaced: ceiling 18 → 20
 
