@@ -16,9 +16,11 @@ const dependencies = toDependencies(JSON.parse(read('package.json')) as PackageJ
 const packages = JSON.parse(read('packuments.json')) as Record<string, RegistryPackage>;
 
 /**
- * report.txt is extracted verbatim from the specification in
- * IMPLEMENTATION_PLAN.md. This comparison is byte for byte on purpose: the
- * column alignment and box-drawing characters are part of the spec.
+ * report.txt is the specification report from IMPLEMENTATION_PLAN.md §1, plus
+ * the "Upgrades required" section added deliberately in D5 (plan §D5) and
+ * recorded in docs/agent-knowledge/output-spec.md. This comparison is byte for
+ * byte on purpose: the column alignment and box-drawing characters are part of
+ * the spec.
  */
 it('renders the specified report for the hard-blocker fixture', () => {
   expect(renderReport(analyze(dependencies, packages, {}))).toBe(read('report.txt'));
@@ -48,6 +50,22 @@ it('computes the numbers the report is built from', () => {
       targetAngularMajor: 19,
       declaredSupport: 'Angular <=18',
       ceilingWithoutBlocker: 20,
+    },
+  ]);
+  // primeng@16 and @ngrx/store@16 don't block Angular 18 — a compatible version
+  // exists — but the installed range can't reach it, so the ceiling assumes a bump.
+  expect(analysis.requiredUpgrades).toEqual([
+    {
+      packageName: '@ngrx/store',
+      installedVersion: '16.3.0',
+      minCompatibleVersion: '18.1.1',
+      targetMajor: 18,
+    },
+    {
+      packageName: 'primeng',
+      installedVersion: '16.9.1',
+      minCompatibleVersion: '18.0.2',
+      targetMajor: 18,
     },
   ]);
 });

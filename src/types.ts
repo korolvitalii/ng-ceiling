@@ -34,7 +34,24 @@ export interface SupportedVersion {
 export interface KnownDependency {
   name: string;
   installedVersion: string;
+  /** The range from package.json — what the project would resolve without a bump. */
+  requestedRange: string;
   supported: SupportedVersion[];
+}
+
+/**
+ * A dependency the ceiling assumes will be upgraded: no version inside its
+ * declared range supports the ceiling major, but a higher one does. It is not
+ * a blocker — the ceiling is an optimistic upper bound — but reaching that
+ * ceiling requires this bump. See "Dependency upgrade required" in the glossary.
+ */
+export interface RequiredUpgrade {
+  packageName: string;
+  installedVersion: string;
+  /** The lowest published version that supports the ceiling major. */
+  minCompatibleVersion: string;
+  /** The major of minCompatibleVersion — the "bump to vN" number. */
+  targetMajor: number;
 }
 
 export interface DependencyBlocker {
@@ -95,6 +112,8 @@ export interface CeilingAnalysis {
   firstBlockedMajor?: number;
   blockers: DependencyBlocker[];
   toolchainBlockers: ToolchainBlocker[];
+  /** Known dependencies whose declared range must be bumped to reach the ceiling. */
+  requiredUpgrades: RequiredUpgrade[];
   /** Excluded from the ceiling, never counted against it. */
   unknownDependencies: string[];
 }

@@ -119,6 +119,10 @@ a peer *on* Angular — Angular declares a peer on it, the other way around.
    Node version as a last resort — flagged as such, since that describes the machine the
    tool ran on, not the project.
 5. Stop at the first major where either check fails.
+6. For the ceiling that produces, list the dependencies whose declared range holds no
+   version that supports it even though a higher release does — the `Upgrades required`
+   section. These don't lower the ceiling (a compatible version exists), but the
+   optimistic number assumes you will bump to it, and the section says so out loud.
 
 The latest Angular major is read from the `@angular/core` dist-tags at runtime, never
 hardcoded.

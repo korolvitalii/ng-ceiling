@@ -37,6 +37,7 @@ const clean: CeilingAnalysis = {
   firstBlockedMajor: undefined,
   blockers: [],
   toolchainBlockers: [],
+  requiredUpgrades: [],
   unknownDependencies: [],
 };
 

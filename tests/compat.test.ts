@@ -4,6 +4,7 @@ import {
   declaredSupport,
   findCompatibleVersion,
   rangeCoversMajor,
+  requiredUpgradesAt,
   solveCeiling,
   toSupportedVersions,
 } from '../src/compat';
@@ -12,6 +13,20 @@ import type { KnownDependency, RegistryPackage } from '../src/types';
 const dep = (name: string, supported: [string, string][]): KnownDependency => ({
   name,
   installedVersion: supported[0]?.[0] ?? '0.0.0',
+  requestedRange: supported[0]?.[0] ?? '0.0.0',
+  supported: supported.map(([version, angularRange]) => ({ version, angularRange })),
+});
+
+/** Like `dep`, but with a declared range that differs from the installed version. */
+const depRanged = (
+  name: string,
+  requestedRange: string,
+  installedVersion: string,
+  supported: [string, string][],
+): KnownDependency => ({
+  name,
+  installedVersion,
+  requestedRange,
   supported: supported.map(([version, angularRange]) => ({ version, angularRange })),
 });
 
@@ -142,6 +157,89 @@ describe('solveCeiling', () => {
 
   it('ignores dependencies that were removed, which is how unlock works', () => {
     expect(solveCeiling([healthy], 16, 20).ceiling).toBe(20);
+  });
+});
+
+describe('requiredUpgradesAt', () => {
+  const primeng = dep('primeng', [
+    ['16.9.1', '^16.0.0'],
+    ['17.0.0', '^17.0.0'],
+    ['18.0.2', '^18.0.0'],
+  ]);
+
+  it('flags a pinned dependency whose installed version cannot reach the ceiling', () => {
+    expect(requiredUpgradesAt([primeng], 18)).toEqual([
+      {
+        packageName: 'primeng',
+        installedVersion: '16.9.1',
+        minCompatibleVersion: '18.0.2',
+        targetMajor: 18,
+      },
+    ]);
+  });
+
+  it('says nothing when the installed version already supports the ceiling', () => {
+    expect(requiredUpgradesAt([primeng], 16)).toEqual([]);
+  });
+
+  it('says nothing when a version inside a caret range already reaches the ceiling', () => {
+    const spanning = depRanged('ngx-wide', '^17.0.0', '17.1.0', [
+      ['17.0.0', '^17.0.0'],
+      ['17.5.0', '>=17.0.0 <19.0.0'],
+    ]);
+    expect(requiredUpgradesAt([spanning], 18)).toEqual([]);
+  });
+
+  it('leaves a hard blocker — no compatible version at all — to the blocker analysis', () => {
+    const stuck = dep('ngx-old', [
+      ['6.0.0', '^16.0.0'],
+      ['7.0.0', '^17.0.0'],
+    ]);
+    expect(requiredUpgradesAt([stuck], 19)).toEqual([]);
+  });
+
+  it('excludes @angular/* packages — they move with the framework major', () => {
+    const ngCommon = dep('@angular/common', [
+      ['16.2.12', '^16.0.0'],
+      ['18.2.13', '^18.0.0'],
+    ]);
+    expect(requiredUpgradesAt([ngCommon], 18)).toEqual([]);
+  });
+
+  it('reports the target major of the lowest compatible version, not the ceiling', () => {
+    // no v18 line — the first version to support Angular 18 is a v19 release
+    const jumped = dep('ngx-jump', [
+      ['16.0.0', '^16.0.0'],
+      ['19.0.0', '>=18.0.0 <20.0.0'],
+    ]);
+    expect(requiredUpgradesAt([jumped], 18)[0]).toMatchObject({
+      minCompatibleVersion: '19.0.0',
+      targetMajor: 19,
+    });
+  });
+
+  it('sorts by package name', () => {
+    const zebra = dep('zebra-ui', [['16.0.0', '^16.0.0'], ['18.0.0', '^18.0.0']]);
+    const alpha = dep('alpha-ui', [['16.0.0', '^16.0.0'], ['18.0.0', '^18.0.0']]);
+    expect(requiredUpgradesAt([zebra, alpha], 18).map((u) => u.packageName)).toEqual([
+      'alpha-ui',
+      'zebra-ui',
+    ]);
+  });
+
+  it('falls back to the installed version when the declared range is unparseable', () => {
+    const weird = depRanged('ngx-weird', 'garbage', '16.0.0', [
+      ['16.0.0', '^16.0.0'],
+      ['18.0.0', '^18.0.0'],
+    ]);
+    expect(requiredUpgradesAt([weird], 18)).toEqual([
+      {
+        packageName: 'ngx-weird',
+        installedVersion: '16.0.0',
+        minCompatibleVersion: '18.0.0',
+        targetMajor: 18,
+      },
+    ]);
   });
 });
 

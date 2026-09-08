@@ -16,6 +16,15 @@
 - Compatible with Angular 19: **none**
 - If replaced: ceiling 18 → 20
 
+## Upgrades required for Angular 18
+
+| Package | Installed | Bump to |
+| --- | --- | --- |
+| @ngrx/store | `16.3.0` | v18 (`18.1.1`) |
+| primeng | `16.9.1` | v18 (`18.0.2`) |
+
+The ceiling assumes these are upgraded — no version in their declared range supports Angular 18. They do not lower the ceiling.
+
 ## Unverified
 
 3 dependencies declare no Angular constraint. They are excluded from the ceiling above.

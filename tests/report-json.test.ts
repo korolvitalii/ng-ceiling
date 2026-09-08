@@ -45,6 +45,7 @@ describe('toJsonReport shape', () => {
     firstBlockedMajor: undefined,
     blockers: [],
     toolchainBlockers: [],
+    requiredUpgrades: [],
     unknownDependencies: [],
   };
 

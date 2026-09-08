@@ -70,6 +70,20 @@ export function renderMarkdownReport(analysis: CeilingAnalysis, options: ReportO
     }
   }
 
+  if (analysis.requiredUpgrades.length > 0) {
+    lines.push('', `## Upgrades required for Angular ${analysis.declaredCeiling}`, '');
+    lines.push('| Package | Installed | Bump to |', '| --- | --- | --- |');
+    for (const upgrade of analysis.requiredUpgrades) {
+      lines.push(
+        `| ${upgrade.packageName} | \`${upgrade.installedVersion}\` | v${upgrade.targetMajor} (\`${upgrade.minCompatibleVersion}\`) |`,
+      );
+    }
+    lines.push(
+      '',
+      `The ceiling assumes these are upgraded — no version in their declared range supports Angular ${analysis.declaredCeiling}. They do not lower the ceiling.`,
+    );
+  }
+
   const unknown = analysis.unknownDependencies;
   if (unknown.length > 0) {
     lines.push('', '## Unverified', '');

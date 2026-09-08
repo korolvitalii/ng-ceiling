@@ -16,6 +16,7 @@ export interface JsonReport {
   firstBlocked: number | null;
   blockers: JsonBlocker[];
   toolchainBlockers: JsonToolchainBlocker[];
+  requiredUpgrades: JsonRequiredUpgrade[];
   unknownCount: number;
   unknown: string[];
 }
@@ -35,6 +36,13 @@ export interface JsonToolchainBlocker {
   blockedAt: number;
   nodeSource: string | null;
   ceilingIfUpgraded: number | null;
+}
+
+export interface JsonRequiredUpgrade {
+  package: string;
+  installed: string;
+  minVersion: string;
+  targetMajor: number;
 }
 
 /** Builds the JSON payload. Pure: same analysis in, same object out. */
@@ -59,6 +67,12 @@ export function toJsonReport(analysis: CeilingAnalysis): JsonReport {
       blockedAt: blocker.targetAngularMajor,
       nodeSource: blocker.nodeSource ?? null,
       ceilingIfUpgraded: blocker.ceilingWithoutBlocker ?? null,
+    })),
+    requiredUpgrades: analysis.requiredUpgrades.map((upgrade) => ({
+      package: upgrade.packageName,
+      installed: upgrade.installedVersion,
+      minVersion: upgrade.minCompatibleVersion,
+      targetMajor: upgrade.targetMajor,
     })),
     unknownCount: analysis.unknownDependencies.length,
     unknown: analysis.unknownDependencies,

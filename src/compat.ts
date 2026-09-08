@@ -9,6 +9,7 @@ import type {
   ProjectDependency,
   RegistryPackage,
   RegistryPackageVersion,
+  RequiredUpgrade,
   SupportedVersion,
   ToolchainBlocker,
 } from './types';
@@ -148,6 +149,44 @@ export function dependenciesBlockedAt(deps: KnownDependency[], major: number): K
   return deps.filter((dep) => findCompatibleVersion(dep, major) === undefined);
 }
 
+/** The published versions of a dependency that satisfy the project's declared range. */
+function versionsInRange(dep: KnownDependency): SupportedVersion[] {
+  if (semver.validRange(dep.requestedRange) === null) {
+    return dep.supported.filter((entry) => entry.version === dep.installedVersion);
+  }
+  return dep.supported.filter((entry) => semver.satisfies(entry.version, dep.requestedRange));
+}
+
+/**
+ * The dependencies whose declared range must be bumped to reach `major`: no
+ * version they would resolve to today supports it, but a higher one does.
+ *
+ * `@angular/*` packages are excluded — they move in lockstep with the framework
+ * major, so upgrading Angular upgrades them by definition and listing them is
+ * noise. A dependency with no compatible version at all is a hard blocker, not
+ * an upgrade, and is left to the blocker analysis.
+ */
+export function requiredUpgradesAt(deps: KnownDependency[], major: number): RequiredUpgrade[] {
+  const upgrades: RequiredUpgrade[] = [];
+
+  for (const dep of deps) {
+    if (dep.name.startsWith(ANGULAR_SCOPE)) continue;
+    if (versionsInRange(dep).some((entry) => rangeCoversMajor(entry.angularRange, major))) continue;
+
+    const minCompatibleVersion = findCompatibleVersion(dep, major);
+    if (minCompatibleVersion === undefined) continue;
+
+    upgrades.push({
+      packageName: dep.name,
+      installedVersion: dep.installedVersion,
+      minCompatibleVersion,
+      targetMajor: semver.major(minCompatibleVersion),
+    });
+  }
+
+  return upgrades.sort((a, b) => a.packageName.localeCompare(b.packageName));
+}
+
 export interface CeilingResult {
   ceiling: number;
   firstBlocked?: number;
@@ -248,6 +287,7 @@ export function analyze(
     known.push({
       name: dep.name,
       installedVersion: lowestVersion(dep.requestedVersion) ?? dep.requestedVersion,
+      requestedRange: dep.requestedVersion,
       supported,
     });
   }
@@ -297,6 +337,12 @@ export function analyze(
     };
   });
 
+  // What it takes to reach the ceiling the tool just reported — computed at that
+  // major, not at firstBlocked, and only when the ceiling is actually above the
+  // current major (otherwise the project is already there and owes nothing).
+  const requiredUpgrades =
+    declaredCeiling > current ? requiredUpgradesAt(known, declaredCeiling) : [];
+
   return {
     currentAngularMajor: current,
     declaredCeiling,
@@ -304,6 +350,7 @@ export function analyze(
     firstBlockedMajor: firstBlocked,
     blockers,
     toolchainBlockers,
+    requiredUpgrades,
     unknownDependencies: [...unknown].sort(),
   };
 }
