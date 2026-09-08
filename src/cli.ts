@@ -3,6 +3,8 @@ import { analyze } from './compat';
 import { readDeclaredToolchain, readPackageJson, toDependencies } from './project';
 import { fetchPackages, RegistryUnavailableError } from './registry';
 import { renderReport } from './report';
+import { renderJsonReport } from './report-json';
+import { renderMarkdownReport } from './report-markdown';
 
 const ANGULAR_CORE = '@angular/core';
 
@@ -13,12 +15,28 @@ const ANGULAR_CORE = '@angular/core';
  */
 const ANGULAR_TOOLCHAIN_PACKAGES = [ANGULAR_CORE, '@angular/compiler-cli', '@angular/cli'];
 
+const FORMATS = ['console', 'json', 'markdown'] as const;
+type Format = (typeof FORMATS)[number];
+
 interface Options {
   cwd: string;
   unknown: boolean;
+  format: string;
+  json: boolean;
+}
+
+/** `--json` is shorthand for `--format json`; an explicit `--format` wins if both are given. */
+function resolveFormat(options: Options): Format {
+  const chosen = options.format !== 'console' ? options.format : options.json ? 'json' : 'console';
+  if (!FORMATS.includes(chosen as Format)) {
+    throw new Error(`unknown --format "${chosen}" (expected one of: ${FORMATS.join(', ')})`);
+  }
+  return chosen as Format;
 }
 
 async function run(options: Options): Promise<void> {
+  const format = resolveFormat(options);
+
   const pkg = readPackageJson(options.cwd);
   const dependencies = toDependencies(pkg);
 
@@ -31,9 +49,18 @@ async function run(options: Options): Promise<void> {
     ...dependencies.map((dep) => dep.name),
     ...ANGULAR_TOOLCHAIN_PACKAGES,
   ]);
-  process.stdout.write(
-    renderReport(analyze(dependencies, packages, toolchain), { listUnknown: options.unknown }),
-  );
+
+  const analysis = analyze(dependencies, packages, toolchain);
+  const reportOptions = { listUnknown: options.unknown };
+
+  const output =
+    format === 'json'
+      ? renderJsonReport(analysis)
+      : format === 'markdown'
+        ? renderMarkdownReport(analysis, reportOptions)
+        : renderReport(analysis, reportOptions);
+
+  process.stdout.write(output);
 }
 
 const program = new Command()
@@ -42,6 +69,8 @@ const program = new Command()
     "Reports the highest Angular major version your project can reach, and what's blocking it.",
   )
   .option('--cwd <path>', 'project directory to analyse', process.cwd())
+  .option('--format <format>', 'output format: console, json or markdown', 'console')
+  .option('--json', 'shorthand for --format json', false)
   .option('--unknown', 'list the dependencies that declare no Angular constraint', false)
   .action(async (options: Options) => {
     try {
