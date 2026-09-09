@@ -4,7 +4,7 @@
   "description": "Reports the highest Angular major version your project can reach, and what's blocking it.",
   "type": "module",
   "bin": {
-    "ng-ceiling": "./dist/cli.js"
+    "ng-ceiling": "dist/cli.js"
   },
   "files": [
     "dist"
