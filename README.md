@@ -38,6 +38,7 @@ ng-ceiling --unknown              # also list the dependencies that could not be
 ng-ceiling --json                 # machine-readable output
 ng-ceiling --format markdown      # a report to paste into Jira, GitHub or Confluence
 ng-ceiling --verbose              # registry diagnostics, and full detail on errors
+ng-ceiling --version              # print the installed version
 ```
 
 `--format` takes `console` (the default), `json` or `markdown`; `--json` is
