@@ -1,6 +1,6 @@
 {
   "name": "ng-ceiling",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Reports the highest Angular major version your project can reach, and what's blocking it.",
   "type": "module",
   "bin": {
@@ -9,6 +9,12 @@
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/korolvitalii/ng-ceiling.git"
+  },
+  "homepage": "https://github.com/korolvitalii/ng-ceiling#readme",
+  "bugs": "https://github.com/korolvitalii/ng-ceiling/issues",
   "engines": {
     "node": ">=20"
   },

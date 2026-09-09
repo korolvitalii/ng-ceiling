@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { Command } from 'commander';
 import { runCeiling, type AppOptions } from './app';
 import { formatError } from './errors';
@@ -6,11 +7,15 @@ interface Options extends AppOptions {
   verbose: boolean;
 }
 
+// dist/cli.js → ../package.json is the installed package root, always present.
+const { version } = createRequire(import.meta.url)('../package.json') as { version: string };
+
 const program = new Command()
   .name('ng-ceiling')
   .description(
     "Reports the highest Angular major version your project can reach, and what's blocking it.",
   )
+  .version(version)
   .option('--cwd <path>', 'project directory to analyse', process.cwd())
   .option('--format <format>', 'output format: console, json or markdown')
   .option('--json', 'shorthand for --format json', false)
