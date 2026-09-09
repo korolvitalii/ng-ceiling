@@ -12,7 +12,11 @@ const COLUMN = 25;
 const UNLOCK_COLUMN = 26;
 
 function row(label: string, value: string, width: number = COLUMN): string {
-  return `${label.padEnd(width)}${value}`;
+  // A label longer than the column (e.g. @angular-devkit/build-angular, 28
+  // chars) gets nothing from padEnd — keep a two-space gap so the value never
+  // butts straight against it.
+  const gap = label.length >= width ? `${label}  ` : label.padEnd(width);
+  return `${gap}${value}`;
 }
 
 export interface ReportOptions {

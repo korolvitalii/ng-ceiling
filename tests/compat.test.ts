@@ -306,13 +306,12 @@ describe('analyze — non-SemVer dependency declarations', () => {
 });
 
 describe('declaredSupport', () => {
-  it('omits the lower bound when support goes all the way back to Angular 1', () => {
-    const stuck = dep('ngx-old-calendar', [
-      ['1.0.0', '^1.0.0'],
-      ['6.0.0', '^16.0.0'],
-      ['7.2.0', '>=17.0.0 <19.0.0'],
+  it('omits the lower bound only when coverage is contiguous from Angular 1', () => {
+    const wide = dep('ngx-wide', [
+      ['1.0.0', '>=1.0.0 <13.0.0'],
+      ['7.2.0', '>=13.0.0 <19.0.0'],
     ]);
-    expect(declaredSupport(stuck, 20)).toBe('Angular <=18');
+    expect(declaredSupport(wide, 20)).toBe('Angular <=18');
   });
 
   it('reports both bounds when support does not reach back to Angular 1', () => {
@@ -327,6 +326,32 @@ describe('declaredSupport', () => {
       ['7.2.0', '>=17.0.0 <19.0.0'],
     ]);
     expect(declaredSupport(stuck, 20)).toBe('Angular 16-18');
+  });
+
+  it('shows the gap when a package dropped its Angular peer for a stretch', () => {
+    // @fortawesome/angular-fontawesome for real: core peer on 0.1–0.9 (^5–^12),
+    // no core peer at all on 0.10–0.11.0, back from 0.11.1 (^14) onwards. No
+    // published version declares Angular 13.
+    const gapped = dep('angular-fontawesome', [
+      ['0.6.0', '^9.0.0'],
+      ['0.7.0', '^10.0.0'],
+      ['0.8.0', '^11.0.0'],
+      ['0.9.0', '^12.0.0'],
+      ['0.11.1', '^14.0.0'],
+      ['0.12.0', '^15.0.0'],
+      ['0.13.0', '^16.0.0'],
+    ]);
+    expect(declaredSupport(gapped, 20)).toBe('Angular 9-12, 14-16');
+  });
+
+  it('lists isolated majors individually', () => {
+    const patchy = dep('ngx-patchy', [
+      ['1.0.0', '^1.0.0'],
+      ['5.0.0', '^15.0.0'],
+      ['6.0.0', '^16.0.0'],
+      ['7.2.0', '>=17.0.0 <19.0.0'],
+    ]);
+    expect(declaredSupport(patchy, 20)).toBe('Angular 1, 15-18');
   });
 });
 

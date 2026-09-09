@@ -48,7 +48,7 @@ it('computes the numbers the report is built from', () => {
       packageName: 'ngx-old-calendar',
       installedVersion: '7.2.0',
       targetAngularMajor: 19,
-      declaredSupport: 'Angular <=18',
+      declaredSupport: 'Angular 15-18',
       ceilingWithoutBlocker: 20,
     },
   ]);
